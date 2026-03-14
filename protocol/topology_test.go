@@ -9,8 +9,8 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-// TestConsumerValidateComNomeVazio testa validação de consumer com nome vazio
-func TestConsumerValidateComNomeVazio(t *testing.T) {
+// TestConsumerValidateWithEmptyName tests validation of consumer with empty name
+func TestConsumerValidateWithEmptyName(t *testing.T) {
 	consumer := Consumer{
 		Name: "",
 		Exec: func(ctx context.Context, msg amqp.Delivery) error {
@@ -27,8 +27,8 @@ func TestConsumerValidateComNomeVazio(t *testing.T) {
 	}
 }
 
-// TestConsumerValidateComHandlerNulo testa validação de consumer com handler nulo
-func TestConsumerValidateComHandlerNulo(t *testing.T) {
+// TestConsumerValidateWithNullHandler tests validation of consumer with null handler
+func TestConsumerValidateWithNullHandler(t *testing.T) {
 	consumer := Consumer{
 		Name: "test-consumer",
 		Exec: nil,
@@ -43,8 +43,8 @@ func TestConsumerValidateComHandlerNulo(t *testing.T) {
 	}
 }
 
-// TestConsumerValidateComDadosValidos testa validação de consumer com dados válidos
-func TestConsumerValidateComDadosValidos(t *testing.T) {
+// TestConsumerValidateWithValidData tests validation of consumer with valid data
+func TestConsumerValidateWithValidData(t *testing.T) {
 	consumer := Consumer{
 		Name: "test-consumer",
 		Exec: func(ctx context.Context, msg amqp.Delivery) error {
@@ -58,7 +58,7 @@ func TestConsumerValidateComDadosValidos(t *testing.T) {
 	}
 }
 
-// TestConsumerMsg testa método Msg
+// TestConsumerMsg tests Msg method
 func TestConsumerMsg(t *testing.T) {
 	consumer := Consumer{}
 	msgChan := make(chan amqp.Delivery, 1)
@@ -69,7 +69,7 @@ func TestConsumerMsg(t *testing.T) {
 	}
 }
 
-// TestConsumerListen testa método Listen
+// TestConsumerListen tests Listen method
 func TestConsumerListen(t *testing.T) {
 	consumer := Consumer{}
 	msgChan := make(chan amqp.Delivery, 1)
@@ -80,7 +80,7 @@ func TestConsumerListen(t *testing.T) {
 	}
 }
 
-// TestConsumerHandler testa método Handler
+// TestConsumerHandler tests Handler method
 func TestConsumerHandler(t *testing.T) {
 	consumer := Consumer{}
 	handlerCalled := false
@@ -105,7 +105,7 @@ func TestConsumerHandler(t *testing.T) {
 	}
 }
 
-// TestConsumerExecute testa método Execute
+// TestConsumerExecute tests Execute method
 func TestConsumerExecute(t *testing.T) {
 	handlerCalled := false
 	consumer := Consumer{
@@ -124,8 +124,8 @@ func TestConsumerExecute(t *testing.T) {
 	}
 }
 
-// TestConsumerExecuteComErro testa método Execute com erro no handler
-func TestConsumerExecuteComErro(t *testing.T) {
+// TestConsumerExecuteWithError tests Execute method with handler error
+func TestConsumerExecuteWithError(t *testing.T) {
 	expectedErr := errors.New("handler error")
 	consumer := Consumer{
 		Exec: func(ctx context.Context, msg amqp.Delivery) error {

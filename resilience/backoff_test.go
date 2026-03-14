@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// TestKeepTryingComSucessoImediato testa KeepTrying com sucesso imediato
-func TestKeepTryingComSucessoImediato(t *testing.T) {
+// TestKeepTryingWithImmediateSuccess tests KeepTrying with immediate success
+func TestKeepTryingWithImmediateSuccess(t *testing.T) {
 	ctx := context.Background()
 	called := false
 	fn := func() error {
@@ -25,8 +25,8 @@ func TestKeepTryingComSucessoImediato(t *testing.T) {
 	}
 }
 
-// TestKeepTryingComFalhaTemporária testa KeepTrying com falha temporária
-func TestKeepTryingComFalhaTemporária(t *testing.T) {
+// TestKeepTryingWithTemporaryFailure tests KeepTrying with temporary failure
+func TestKeepTryingWithTemporaryFailure(t *testing.T) {
 	ctx := context.Background()
 	callCount := 0
 	fn := func() error {
@@ -46,8 +46,8 @@ func TestKeepTryingComFalhaTemporária(t *testing.T) {
 	}
 }
 
-// TestKeepTryingComContextCancelado testa KeepTrying com contexto cancelado
-func TestKeepTryingComContextCancelado(t *testing.T) {
+// TestKeepTryingWithCancelledContext tests KeepTrying with cancelled context
+func TestKeepTryingWithCancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancela imediatamente
 
@@ -64,8 +64,8 @@ func TestKeepTryingComContextCancelado(t *testing.T) {
 	}
 }
 
-// TestKeepTryingComConfiguraçãoPersonalizada testa KeepTrying com configuração personalizada
-func TestKeepTryingComConfiguraçãoPersonalizada(t *testing.T) {
+// TestKeepTryingWithCustomConfig tests KeepTrying with custom configuration
+func TestKeepTryingWithCustomConfig(t *testing.T) {
 	ctx := context.Background()
 	callCount := 0
 	fn := func() error {
@@ -91,8 +91,8 @@ func TestKeepTryingComConfiguraçãoPersonalizada(t *testing.T) {
 	}
 }
 
-// TestKeepTryingComTimeout testa KeepTrying com timeout
-func TestKeepTryingComTimeout(t *testing.T) {
+// TestKeepTryingWithTimeout tests KeepTrying with timeout
+func TestKeepTryingWithTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
@@ -110,8 +110,8 @@ func TestKeepTryingComTimeout(t *testing.T) {
 	}
 }
 
-// TestRetryOnceComSucesso testa RetryOnce com sucesso
-func TestRetryOnceComSucesso(t *testing.T) {
+// TestRetryOnceWithSuccess tests RetryOnce with success
+func TestRetryOnceWithSuccess(t *testing.T) {
 	called := false
 	fn := func() error {
 		called = true
@@ -127,8 +127,8 @@ func TestRetryOnceComSucesso(t *testing.T) {
 	}
 }
 
-// TestRetryOnceComFalha testa RetryOnce com falha
-func TestRetryOnceComFalha(t *testing.T) {
+// TestRetryOnceWithFailure tests RetryOnce with failure
+func TestRetryOnceWithFailure(t *testing.T) {
 	expectedErr := errors.New("falha")
 	fn := func() error {
 		return expectedErr

@@ -10,8 +10,8 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-// TestWaitSemConsumers testa wait sem consumers
-func TestWaitSemConsumers(t *testing.T) {
+// TestWaitWithoutConsumers tests wait without consumers
+func TestWaitWithoutConsumers(t *testing.T) {
 	hop := &hop{
 		consumers: make(map[string]protocol.Consumer),
 	}
@@ -24,8 +24,8 @@ func TestWaitSemConsumers(t *testing.T) {
 	}
 }
 
-// TestPublishNãoImplementado testa que publish não está implementado
-func TestPublishNãoImplementado(t *testing.T) {
+// TestPublishNotImplemented tests that publish is not implemented
+func TestPublishNotImplemented(t *testing.T) {
 	hop := &hop{}
 	err := hop.Publish(context.Background(), "exchange", "key", []byte("message"))
 	if err == nil {
@@ -36,8 +36,8 @@ func TestPublishNãoImplementado(t *testing.T) {
 	}
 }
 
-// TestConsumeComErroNaValidação testa consumo com erro na validação
-func TestConsumeComErroNaValidação(t *testing.T) {
+// TestConsumeWithValidationError tests consume with validation error
+func TestConsumeWithValidationError(t *testing.T) {
 	hop := &hop{
 		conn: &amqp.Connection{},
 	}
@@ -59,8 +59,8 @@ func TestConsumeComErroNaValidação(t *testing.T) {
 	}
 }
 
-// TestConsumeComHandlerNulo testa consumo com handler nulo
-func TestConsumeComHandlerNulo(t *testing.T) {
+// TestConsumeWithNullHandler tests consume with null handler
+func TestConsumeWithNullHandler(t *testing.T) {
 	hop := &hop{
 		conn: &amqp.Connection{},
 	}
@@ -80,62 +80,62 @@ func TestConsumeComHandlerNulo(t *testing.T) {
 	}
 }
 
-// TestCloseComConexãoFechada testa close com conexão fechada
-func TestCloseComConexãoFechada(t *testing.T) {
+// TestCloseWithClosedConnection tests close with closed connection
+func TestCloseWithClosedConnection(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestShutdownComConsumers testa shutdown com consumers ativos
-func TestShutdownComConsumers(t *testing.T) {
+// TestShutdownWithConsumers tests shutdown with active consumers
+func TestShutdownWithConsumers(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestShutdownSemConsumers testa shutdown sem consumers
-func TestShutdownSemConsumers(t *testing.T) {
+// TestShutdownWithoutConsumers tests shutdown without consumers
+func TestShutdownWithoutConsumers(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestStartConsumersComConsumers testa start consumers com consumers registrados
-func TestStartConsumersComConsumers(t *testing.T) {
+// TestStartConsumersWithConsumers tests start consumers with registered consumers
+func TestStartConsumersWithConsumers(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestStartConsumersSemConsumers testa start consumers sem consumers
-func TestStartConsumersSemConsumers(t *testing.T) {
+// TestStartConsumersWithoutConsumers tests start consumers without consumers
+func TestStartConsumersWithoutConsumers(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestWaitComConsumers testa wait com consumers ativos
-func TestWaitComConsumers(t *testing.T) {
+// TestWaitWithConsumers tests wait with active consumers
+func TestWaitWithConsumers(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestMonitorConnectionComContextCancelado testa monitorConnection com contexto cancelado
-func TestMonitorConnectionComContextCancelado(t *testing.T) {
+// TestMonitorConnectionWithCancelledContext tests monitorConnection with cancelled context
+func TestMonitorConnectionWithCancelledContext(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestMonitorConnectionComConexãoFechada testa monitorConnection com conexão fechada
-func TestMonitorConnectionComConexãoFechada(t *testing.T) {
+// TestMonitorConnectionWithClosedConnection tests monitorConnection with closed connection
+func TestMonitorConnectionWithClosedConnection(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestRestartConsumersComConsumers testa restart consumers com consumers registrados
-func TestRestartConsumersComConsumers(t *testing.T) {
+// TestRestartConsumersWithConsumers tests restart consumers with registered consumers
+func TestRestartConsumersWithConsumers(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestRestartConsumersSemConsumers testa restart consumers sem consumers
-func TestRestartConsumersSemConsumers(t *testing.T) {
+// TestRestartConsumersWithoutConsumers tests restart consumers without consumers
+func TestRestartConsumersWithoutConsumers(t *testing.T) {
 	ctx := context.Background()
 	hop := &hop{
 		consumers: make(map[string]protocol.Consumer),
@@ -144,68 +144,68 @@ func TestRestartConsumersSemConsumers(t *testing.T) {
 	hop.restartConsumers(ctx)
 }
 
-// TestStartConsumerComContextCancelado testa start consumer com contexto cancelado
-func TestStartConsumerComContextCancelado(t *testing.T) {
+// TestStartConsumerWithCancelledContext tests start consumer with cancelled context
+func TestStartConsumerWithCancelledContext(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestStartConsumerComCanalFechado testa start consumer com canal fechado
-func TestStartConsumerComCanalFechado(t *testing.T) {
+// TestStartConsumerWithClosedChannel tests start consumer with closed channel
+func TestStartConsumerWithClosedChannel(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestStartConsumerComReconexão testa start consumer com reconexão
-func TestStartConsumerComReconexão(t *testing.T) {
+// TestStartConsumerWithReconnection tests start consumer with reconnection
+func TestStartConsumerWithReconnection(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestConsumeComErroNaFila testa consumo com erro na declaração da fila
-func TestConsumeComErroNaFila(t *testing.T) {
+// TestConsumeWithQueueError tests consume with queue declaration error
+func TestConsumeWithQueueError(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestConsumeComErroNoConsumer testa consumo com erro no consumer
-func TestConsumeComErroNoConsumer(t *testing.T) {
+// TestConsumeWithConsumerError tests consume with consumer error
+func TestConsumeWithConsumerError(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestConsumeComConsumerExistente testa consumo com consumer já existente
-func TestConsumeComConsumerExistente(t *testing.T) {
+// TestConsumeWithExistingConsumer tests consume with existing consumer
+func TestConsumeWithExistingConsumer(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestCloseComErro testa close com erro
-func TestCloseComErro(t *testing.T) {
+// TestCloseWithError tests close with error
+func TestCloseWithError(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestShutdownComErroNoWait testa shutdown com erro no wait
-func TestShutdownComErroNoWait(t *testing.T) {
+// TestShutdownWithWaitError tests shutdown with wait error
+func TestShutdownWithWaitError(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestShutdownComErroNoClose testa shutdown com erro no close
-func TestShutdownComErroNoClose(t *testing.T) {
+// TestShutdownWithCloseError tests shutdown with close error
+func TestShutdownWithCloseError(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestWaitComErro testa wait com erro
-func TestWaitComErro(t *testing.T) {
+// TestWaitWithError tests wait with error
+func TestWaitWithError(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
 
-// TestStartConsumerComErroNoHandler testa start consumer com erro no handler
-func TestStartConsumerComErroNoHandler(t *testing.T) {
+// TestStartConsumerWithHandlerError tests start consumer with handler error
+func TestStartConsumerWithHandlerError(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
 }
