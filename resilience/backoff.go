@@ -41,12 +41,10 @@ func KeepTrying(ctx context.Context, fn func() error, opts ...BackoffOption) err
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		default:
+		case <-time.After(currentDelay):
 			if err := fn(); err == nil {
 				return nil
 			}
-
-			time.Sleep(currentDelay)
 
 			nextDelay := time.Duration(float64(currentDelay) * cfg.Multiplier)
 			if nextDelay >= cfg.MaxDelay {
