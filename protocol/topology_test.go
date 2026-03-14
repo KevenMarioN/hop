@@ -22,7 +22,7 @@ func TestConsumerValidateComNomeVazio(t *testing.T) {
 	if err == nil {
 		t.Error("Esperado erro de validação, mas obteve nil")
 	}
-	if !strings.Contains(err.Error(), "name consumer don't empty") {
+	if !strings.Contains(err.Error(), "consumer name cannot be empty") {
 		t.Errorf("Erro inesperado: %v", err)
 	}
 }
@@ -38,7 +38,7 @@ func TestConsumerValidateComHandlerNulo(t *testing.T) {
 	if err == nil {
 		t.Error("Esperado erro de validação, mas obteve nil")
 	}
-	if !strings.Contains(err.Error(), "handler don't empty") {
+	if !strings.Contains(err.Error(), "handler cannot be empty") {
 		t.Errorf("Erro inesperado: %v", err)
 	}
 }

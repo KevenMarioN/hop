@@ -44,11 +44,11 @@ type Consumer struct {
 func (c Consumer) Validate() error {
 	var errs = make([]error, 0)
 	if c.Name == "" {
-		errs = append(errs, errors.New("name consumer don't empty"))
+		errs = append(errs, errors.New("consumer name cannot be empty"))
 	}
 
 	if c.Exec == nil {
-		errs = append(errs, errors.New("handler don't empty"))
+		errs = append(errs, errors.New("handler cannot be empty"))
 	}
 
 	return errors.Join(errs...)

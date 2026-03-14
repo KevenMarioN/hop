@@ -6,15 +6,15 @@ import (
 	"time"
 )
 
-// BackoffConfig define os parâmetros do algoritmo
+// BackoffConfig defines the parameters for the backoff algorithm
 type BackoffConfig struct {
 	InitialDelay time.Duration // Ex: 100ms
-	MaxDelay     time.Duration // Ex: 30s (o teto)
-	Multiplier   float64       // Ex: 2.0 (dobrar o tempo)
+	MaxDelay     time.Duration // Ex: 30s (ceiling)
+	Multiplier   float64       // Ex: 2.0 (double the time)
 }
 
-// RetryOnce: Tenta conectar uma única vez (usado na inicialização).
-// Retorna erro imediatamente se falhar.
+// RetryOnce: Tries to connect once (used during initialization).
+// Returns error immediately if it fails.
 func RetryOnce(fn func() error) error {
 	return fn()
 }
@@ -27,8 +27,8 @@ func defaultConfig() BackoffConfig {
 	}
 }
 
-// KeepTrying: Tenta indefinidamente até conseguir ou o contexto ser cancelado.
-// Usa exponential backoff com reset.
+// KeepTrying: Tries indefinitely until successful or context is cancelled.
+// Uses exponential backoff with reset.
 func KeepTrying(ctx context.Context, fn func() error, opts ...BackoffOption) error {
 	cfg := defaultConfig()
 	for _, opt := range opts {
@@ -36,12 +36,14 @@ func KeepTrying(ctx context.Context, fn func() error, opts ...BackoffOption) err
 	}
 
 	currentDelay := cfg.InitialDelay
+	attemptCount := 0
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(currentDelay):
+			attemptCount++
 			if err := fn(); err == nil {
 				return nil
 			}

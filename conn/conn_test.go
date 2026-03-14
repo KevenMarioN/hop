@@ -2,6 +2,7 @@ package conn
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -16,11 +17,10 @@ func TestWaitSemConsumers(t *testing.T) {
 	}
 	err := hop.Wait()
 	if err == nil {
-		t.Error("Esperado erro 'not have consumers for wait', mas obteve nil")
+		t.Error("Esperado erro 'no consumers registered', mas obteve nil")
 	}
-	expectedMsg := "not have consumers for wait"
-	if err.Error() != expectedMsg {
-		t.Errorf("Mensagem de erro inesperada. Esperado: %s, Obtido: %s", expectedMsg, err.Error())
+	if !errors.Is(err, ErrNoConsumers) {
+		t.Errorf("Erro inesperado: %v", err)
 	}
 }
 
@@ -29,11 +29,10 @@ func TestPublishNãoImplementado(t *testing.T) {
 	hop := &hop{}
 	err := hop.Publish(context.Background(), "exchange", "key", []byte("message"))
 	if err == nil {
-		t.Error("Esperado erro 'don't implemented', mas obteve nil")
+		t.Error("Esperado erro 'not implemented', mas obteve nil")
 	}
-	expectedMsg := "don't implemented"
-	if err.Error() != expectedMsg {
-		t.Errorf("Mensagem de erro inesperada. Esperado: %s, Obtido: %s", expectedMsg, err.Error())
+	if !errors.Is(err, ErrNotImplemented) {
+		t.Errorf("Erro inesperado: %v", err)
 	}
 }
 
@@ -55,7 +54,7 @@ func TestConsumeComErroNaValidação(t *testing.T) {
 	if err == nil {
 		t.Error("Esperado erro de validação, mas obteve nil")
 	}
-	if !strings.Contains(err.Error(), "name consumer don't empty") {
+	if !strings.Contains(err.Error(), "consumer name cannot be empty") {
 		t.Errorf("Erro inesperado: %v", err)
 	}
 }
@@ -76,7 +75,7 @@ func TestConsumeComHandlerNulo(t *testing.T) {
 	if err == nil {
 		t.Error("Esperado erro de validação, mas obteve nil")
 	}
-	if !strings.Contains(err.Error(), "handler don't empty") {
+	if !strings.Contains(err.Error(), "handler cannot be empty") {
 		t.Errorf("Erro inesperado: %v", err)
 	}
 }
