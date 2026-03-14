@@ -40,6 +40,7 @@ func Connect(ctx context.Context, url string, opts ...HopOption) (*hop, error) {
 		return nil, fmt.Errorf("failed to initialize hop connection: %w", err)
 	}
 
+	log.Info().Msgf("Connected to RabbitMQ: %s", url)
 	go c.monitorConnection(ctx, url, config)
 
 	return c, nil
@@ -58,6 +59,7 @@ func (h *hop) monitorConnection(ctx context.Context, url string, config amqp.Con
 
 		h.restartConsumers(ctx)
 		h.reconnect <- true
+		log.Info().Msg("Successfully reconnected to RabbitMQ")
 
 		return nil
 	}
@@ -71,6 +73,7 @@ func (h *hop) monitorConnection(ctx context.Context, url string, config amqp.Con
 
 			return
 		case <-closeChan:
+			log.Warn().Msgf("Connection closed: %s", h.connectionName)
 			if err := resilience.KeepTrying(ctx, tryReconnect); err != nil {
 				log.Error().Err(err).Msg("failed to retry connection")
 			}
@@ -82,6 +85,8 @@ func (h *hop) restartConsumers(ctx context.Context) {
 	for name, consumer := range h.consumers {
 		if err := h.consume(&consumer); err != nil {
 			log.Error().Err(err).Msgf("failed to restart consumer %s", name)
+		} else {
+			log.Info().Msgf("Successfully restarted consumer %s", name)
 		}
 		h.startConsumer(ctx, name, consumer)
 	}
@@ -126,6 +131,7 @@ func (c *hop) consume(args *protocol.Consumer) error {
 
 	args.Msg(msg)
 	c.consumers[args.Name] = *args
+	log.Info().Msgf("Consumer %s registered successfully", args.Name)
 
 	return nil
 }
