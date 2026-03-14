@@ -19,7 +19,7 @@ func main() {
 	}
 
 	if err := hop.Consume(protocol.Consumer{
-		Name:      "example",
+		Name:      "example-hop-dollar",
 		AutoAck:   false,
 		NoLocal:   false,
 		Exclusive: false,

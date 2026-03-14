@@ -29,9 +29,15 @@ func main() {
 		conn.WithConnectionName("meu-app-advanced"),
 	)
 	if err != nil {
-		log.Fatalf("Falha ao criar conexão: %v", err)
+		fmt.Printf("Falha ao criar conexão: %v", err)
+		return
 	}
-	defer hopClient.Close()
+
+	defer func() {
+		if err := hopClient.Close(); err != nil {
+			fmt.Print(err)
+		}
+	}()
 
 	// Registra consumer 1 - Processamento de pedidos
 	err = hopClient.Consume(protocol.Consumer{
@@ -42,15 +48,22 @@ func main() {
 			Durable: true,
 		},
 		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
-			defer msg.Ack(true)
+			defer func() {
+				if err := msg.Ack(true); err != nil {
+					fmt.Print(err)
+				}
+			}()
+
 			fmt.Printf("[Order] Processando pedido: %s\n", string(msg.Body))
 			// Simula processamento
 			time.Sleep(100 * time.Millisecond)
+
 			return nil
 		},
 	})
 	if err != nil {
-		log.Fatalf("Falha ao registrar consumer order-processor: %v", err)
+		fmt.Printf("Falha ao registrar consumer order-processor: %v", err)
+		return
 	}
 
 	// Registra consumer 2 - Processamento de notificações
@@ -62,15 +75,22 @@ func main() {
 			Durable: true,
 		},
 		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
-			defer msg.Ack(true)
+			defer func() {
+				if err := msg.Ack(true); err != nil {
+					fmt.Print(err)
+				}
+			}()
+
 			fmt.Printf("[Notification] Processando notificação: %s\n", string(msg.Body))
 			// Simula processamento
 			time.Sleep(50 * time.Millisecond)
+
 			return nil
 		},
 	})
 	if err != nil {
-		log.Fatalf("Falha ao registrar consumer notification-processor: %v", err)
+		fmt.Printf("Falha ao registrar consumer notification-processor: %v", err)
+		return
 	}
 
 	// Registra consumer 3 - Processamento de logs
@@ -87,7 +107,7 @@ func main() {
 		},
 	})
 	if err != nil {
-		log.Fatalf("Falha ao registrar consumer log-processor: %v", err)
+		fmt.Printf("Falha ao registrar consumer log-processor: %v", err)
 	}
 
 	// Inicia todos os consumers
@@ -105,6 +125,7 @@ func main() {
 
 	// Graceful shutdown
 	fmt.Println("Aguardando conclusão das mensagens em processamento...")
+
 	if err := hopClient.Shutdown(ctx); err != nil {
 		log.Printf("Erro durante shutdown: %v", err)
 	}

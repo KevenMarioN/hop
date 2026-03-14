@@ -20,6 +20,7 @@ func TestKeepTryingWithImmediateSuccess(t *testing.T) {
 	if err != nil {
 		t.Errorf("Não esperado erro, mas obteve: %v", err)
 	}
+
 	if !called {
 		t.Error("Função não foi chamada")
 	}
@@ -34,6 +35,7 @@ func TestKeepTryingWithTemporaryFailure(t *testing.T) {
 		if callCount < 3 {
 			return errors.New("falha temporária")
 		}
+
 		return nil
 	}
 
@@ -41,6 +43,7 @@ func TestKeepTryingWithTemporaryFailure(t *testing.T) {
 	if err != nil {
 		t.Errorf("Não esperado erro, mas obteve: %v", err)
 	}
+
 	if callCount != 3 {
 		t.Errorf("Esperado 3 chamadas, mas obteve %d", callCount)
 	}
@@ -59,6 +62,7 @@ func TestKeepTryingWithCancelledContext(t *testing.T) {
 	if err == nil {
 		t.Error("Esperado erro de contexto cancelado, mas obteve nil")
 	}
+
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("Erro inesperado: %v", err)
 	}
@@ -73,6 +77,7 @@ func TestKeepTryingWithCustomConfig(t *testing.T) {
 		if callCount < 3 {
 			return errors.New("falha")
 		}
+
 		return nil
 	}
 
@@ -86,6 +91,7 @@ func TestKeepTryingWithCustomConfig(t *testing.T) {
 	if err != nil {
 		t.Errorf("Não esperado erro, mas obteve: %v", err)
 	}
+
 	if callCount != 3 {
 		t.Errorf("Esperado 3 chamadas, mas obteve %d", callCount)
 	}
@@ -105,6 +111,7 @@ func TestKeepTryingWithTimeout(t *testing.T) {
 	if err == nil {
 		t.Error("Esperado erro de timeout, mas obteve nil")
 	}
+
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Errorf("Erro inesperado: %v", err)
 	}
@@ -122,6 +129,7 @@ func TestRetryOnceWithSuccess(t *testing.T) {
 	if err != nil {
 		t.Errorf("Não esperado erro, mas obteve: %v", err)
 	}
+
 	if !called {
 		t.Error("Função não foi chamada")
 	}
@@ -138,6 +146,7 @@ func TestRetryOnceWithFailure(t *testing.T) {
 	if err == nil {
 		t.Error("Esperado erro, mas obteve nil")
 	}
+
 	if !errors.Is(err, expectedErr) {
 		t.Errorf("Erro inesperado: %v", err)
 	}
@@ -176,9 +185,11 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.InitialDelay != 100*time.Millisecond {
 		t.Errorf("InitialDelay padrão incorreto. Esperado: 100ms, Obtido: %v", cfg.InitialDelay)
 	}
+
 	if cfg.MaxDelay != 30*time.Second {
 		t.Errorf("MaxDelay padrão incorreto. Esperado: 30s, Obtido: %v", cfg.MaxDelay)
 	}
+
 	if cfg.Multiplier != 2.0 {
 		t.Errorf("Multiplier padrão incorreto. Esperado: 2.0, Obtido: %v", cfg.Multiplier)
 	}

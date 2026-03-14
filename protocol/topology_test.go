@@ -22,6 +22,7 @@ func TestConsumerValidateWithEmptyName(t *testing.T) {
 	if err == nil {
 		t.Error("Esperado erro de validação, mas obteve nil")
 	}
+
 	if !strings.Contains(err.Error(), "consumer name cannot be empty") {
 		t.Errorf("Erro inesperado: %v", err)
 	}
@@ -38,6 +39,7 @@ func TestConsumerValidateWithNullHandler(t *testing.T) {
 	if err == nil {
 		t.Error("Esperado erro de validação, mas obteve nil")
 	}
+
 	if !strings.Contains(err.Error(), "handler cannot be empty") {
 		t.Errorf("Erro inesperado: %v", err)
 	}
@@ -100,6 +102,7 @@ func TestConsumerHandler(t *testing.T) {
 	if err != nil {
 		t.Errorf("Handler retornou erro inesperado: %v", err)
 	}
+
 	if !handlerCalled {
 		t.Error("Handler não foi chamado")
 	}
@@ -119,6 +122,7 @@ func TestConsumerExecute(t *testing.T) {
 	if err != nil {
 		t.Errorf("Execute retornou erro inesperado: %v", err)
 	}
+
 	if !handlerCalled {
 		t.Error("Handler não foi chamado via Execute")
 	}
@@ -137,6 +141,7 @@ func TestConsumerExecuteWithError(t *testing.T) {
 	if err == nil {
 		t.Error("Esperado erro do handler, mas obteve nil")
 	}
+
 	if !errors.Is(err, expectedErr) {
 		t.Errorf("Erro inesperado: %v", err)
 	}

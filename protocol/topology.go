@@ -38,7 +38,6 @@ type Consumer struct {
 	Exchange  *Exchange
 	msg       <-chan amqp.Delivery
 	Exec      Handler
-	Reconnect bool
 }
 
 func (c Consumer) Validate() error {

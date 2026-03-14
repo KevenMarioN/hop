@@ -41,6 +41,7 @@ func Connect(ctx context.Context, url string, opts ...HopOption) (*hop, error) {
 	}
 
 	log.Info().Msgf("Connected to RabbitMQ: %s", url)
+
 	go c.monitorConnection(ctx, url, config)
 
 	return c, nil
@@ -57,8 +58,8 @@ func (h *hop) monitorConnection(ctx context.Context, url string, config amqp.Con
 		h.conn = newConn
 		closeChan = newConn.NotifyClose(make(chan *amqp.Error, 1))
 
-		h.restartConsumers(ctx)
 		h.reconnect <- true
+
 		log.Info().Msg("Successfully reconnected to RabbitMQ")
 
 		return nil
@@ -74,21 +75,11 @@ func (h *hop) monitorConnection(ctx context.Context, url string, config amqp.Con
 			return
 		case <-closeChan:
 			log.Warn().Msgf("Connection closed: %s", h.connectionName)
+
 			if err := resilience.KeepTrying(ctx, tryReconnect); err != nil {
 				log.Error().Err(err).Msg("failed to retry connection")
 			}
 		}
-	}
-}
-
-func (h *hop) restartConsumers(ctx context.Context) {
-	for name, consumer := range h.consumers {
-		if err := h.consume(&consumer); err != nil {
-			log.Error().Err(err).Msgf("failed to restart consumer %s", name)
-		} else {
-			log.Info().Msgf("Successfully restarted consumer %s", name)
-		}
-		h.startConsumer(ctx, name, consumer)
 	}
 }
 
@@ -105,11 +96,11 @@ func (c *hop) consume(args *protocol.Consumer) error {
 		return fmt.Errorf("consumer validation failed: %w", err)
 	}
 
+	var newConsumer bool
+
 	if _, ok := c.consumers[args.Name]; !ok {
 		c.consumers[args.Name] = *args
-	} else {
-		args.Reconnect = true
-		c.consumers[args.Name] = *args
+		newConsumer = true
 	}
 
 	channel, err := c.conn.Channel()
@@ -131,7 +122,10 @@ func (c *hop) consume(args *protocol.Consumer) error {
 
 	args.Msg(msg)
 	c.consumers[args.Name] = *args
-	log.Info().Msgf("Consumer %s registered successfully", args.Name)
+
+	if newConsumer {
+		log.Info().Msgf("Consumer %s registered successfully for queue %s", args.Name, args.Queue.Name)
+	}
 
 	return nil
 }
@@ -157,11 +151,7 @@ func (c *hop) Shutdown(ctx context.Context) error {
 }
 
 func (c *hop) startConsumer(ctx context.Context, name string, consumer protocol.Consumer) {
-	if !consumer.Reconnect {
-		log.Info().Msgf("Starting consumer %s", name)
-	} else {
-		log.Info().Msgf("Restarting consumer %s", name)
-	}
+	log.Info().Msgf("Starting consumer %s", name)
 
 	c.wg.Go(func() error {
 		for {
@@ -172,7 +162,11 @@ func (c *hop) startConsumer(ctx context.Context, name string, consumer protocol.
 
 					select {
 					case <-c.reconnect:
-						return nil
+						if err := c.consume(&consumer); err != nil {
+							return fmt.Errorf("failed restarting consumer")
+						}
+
+						log.Info().Msgf("Consumer %s reset successful", name)
 					case <-ctx.Done():
 						return fmt.Errorf("awaiting reconnection consumer context done: %w", ctx.Err())
 					}

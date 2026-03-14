@@ -15,10 +15,12 @@ func TestWaitWithoutConsumers(t *testing.T) {
 	hop := &hop{
 		consumers: make(map[string]protocol.Consumer),
 	}
+
 	err := hop.Wait()
 	if err == nil {
 		t.Error("Esperado erro 'no consumers registered', mas obteve nil")
 	}
+
 	if !errors.Is(err, ErrNoConsumers) {
 		t.Errorf("Erro inesperado: %v", err)
 	}
@@ -27,10 +29,12 @@ func TestWaitWithoutConsumers(t *testing.T) {
 // TestPublishNotImplemented tests that publish is not implemented
 func TestPublishNotImplemented(t *testing.T) {
 	hop := &hop{}
+
 	err := hop.Publish(context.Background(), "exchange", "key", []byte("message"))
 	if err == nil {
 		t.Error("Esperado erro 'not implemented', mas obteve nil")
 	}
+
 	if !errors.Is(err, ErrNotImplemented) {
 		t.Errorf("Erro inesperado: %v", err)
 	}
@@ -54,6 +58,7 @@ func TestConsumeWithValidationError(t *testing.T) {
 	if err == nil {
 		t.Error("Esperado erro de validação, mas obteve nil")
 	}
+
 	if !strings.Contains(err.Error(), "consumer name cannot be empty") {
 		t.Errorf("Erro inesperado: %v", err)
 	}
@@ -75,6 +80,7 @@ func TestConsumeWithNullHandler(t *testing.T) {
 	if err == nil {
 		t.Error("Esperado erro de validação, mas obteve nil")
 	}
+
 	if !strings.Contains(err.Error(), "handler cannot be empty") {
 		t.Errorf("Erro inesperado: %v", err)
 	}
@@ -132,16 +138,6 @@ func TestMonitorConnectionWithClosedConnection(t *testing.T) {
 func TestRestartConsumersWithConsumers(t *testing.T) {
 	// Este teste requer RabbitMQ em execução
 	t.Skip("Requer RabbitMQ em execução")
-}
-
-// TestRestartConsumersWithoutConsumers tests restart consumers without consumers
-func TestRestartConsumersWithoutConsumers(t *testing.T) {
-	ctx := context.Background()
-	hop := &hop{
-		consumers: make(map[string]protocol.Consumer),
-	}
-	// Não deve panique
-	hop.restartConsumers(ctx)
 }
 
 // TestStartConsumerWithCancelledContext tests start consumer with cancelled context

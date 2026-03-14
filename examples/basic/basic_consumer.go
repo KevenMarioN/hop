@@ -18,7 +18,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Falha ao criar conexão: %v", err)
 	}
-	defer hopClient.Close()
+
+	defer func() {
+		if err := hopClient.Close(); err != nil {
+			fmt.Print(err)
+		}
+	}()
 
 	// Registra consumer
 	err = hopClient.Consume(protocol.Consumer{
@@ -29,13 +34,20 @@ func main() {
 			Durable: true,
 		},
 		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
-			defer msg.Ack(true)
+			defer func() {
+				if err := msg.Ack(true); err != nil {
+					fmt.Print(err)
+				}
+			}()
+
 			fmt.Printf("Mensagem recebida: %s\n", string(msg.Body))
+
 			return nil
 		},
 	})
 	if err != nil {
-		log.Fatalf("Falha ao registrar consumer: %v", err)
+		fmt.Printf("Falha ao registrar consumer: %v", err)
+		return
 	}
 
 	// Inicia consumers
@@ -43,6 +55,7 @@ func main() {
 
 	// Aguarda conclusão
 	if err := hopClient.Shutdown(ctx); err != nil {
-		log.Fatalf("Falha no shutdown: %v", err)
+		fmt.Printf("Falha no shutdown: %v", err)
+		return
 	}
 }

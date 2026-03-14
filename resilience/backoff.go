@@ -44,6 +44,7 @@ func KeepTrying(ctx context.Context, fn func() error, opts ...BackoffOption) err
 			return ctx.Err()
 		case <-time.After(currentDelay):
 			attemptCount++
+
 			if err := fn(); err == nil {
 				return nil
 			}
