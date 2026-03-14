@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/KevenMarioN/hop"
+	"github.com/KevenMarioN/hop/conn"
 	"github.com/KevenMarioN/hop/protocol"
 	"github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog/log"
@@ -12,7 +14,8 @@ import (
 func main() {
 	ctx := context.Background()
 
-	hop, err := hop.New(ctx, "amqp://admin:admin@localhost:5672/")
+	hop, err := hop.New(ctx, "amqp://admin:admin@localhost:5672/",
+		conn.WithBackoff(2, time.Second*1, time.Minute*1))
 	if err != nil {
 		log.Error().Err(err).Msg("failed start connection hop")
 		return

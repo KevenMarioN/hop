@@ -4,6 +4,8 @@ package resilience
 import (
 	"context"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 // BackoffConfig defines the parameters for the backoff algorithm
@@ -44,7 +46,7 @@ func KeepTrying(ctx context.Context, fn func() error, opts ...BackoffOption) err
 			return ctx.Err()
 		case <-time.After(currentDelay):
 			attemptCount++
-
+			log.Warn().Msgf("Retrying operation (attempt %d) after %v delay", attemptCount, currentDelay)
 			if err := fn(); err == nil {
 				return nil
 			}

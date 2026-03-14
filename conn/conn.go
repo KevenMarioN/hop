@@ -3,6 +3,7 @@ package conn
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/KevenMarioN/hop/protocol"
 	"github.com/KevenMarioN/hop/resilience"
@@ -17,6 +18,13 @@ type hop struct {
 	consumers      map[string]protocol.Consumer
 	wg             errgroup.Group
 	reconnect      chan bool
+	backoffConfig  backoffConfig
+}
+
+type backoffConfig struct {
+	InitialDelay time.Duration
+	MaxDelay     time.Duration
+	Multiplier   float64
 }
 
 func Connect(ctx context.Context, url string, opts ...HopOption) (*hop, error) {
@@ -76,7 +84,10 @@ func (h *hop) monitorConnection(ctx context.Context, url string, config amqp.Con
 		case <-closeChan:
 			log.Warn().Msgf("Connection closed: %s", h.connectionName)
 
-			if err := resilience.KeepTrying(ctx, tryReconnect); err != nil {
+			if err := resilience.KeepTrying(ctx, tryReconnect,
+				resilience.WithInitialDelay(h.backoffConfig.InitialDelay),
+				resilience.WithMaxDelay(h.backoffConfig.MaxDelay),
+				resilience.WithMultiplier(h.backoffConfig.Multiplier)); err != nil {
 				log.Error().Err(err).Msg("failed to retry connection")
 			}
 		}

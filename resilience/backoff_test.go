@@ -87,7 +87,8 @@ func TestKeepTryingWithCustomConfig(t *testing.T) {
 		Multiplier:   2.0,
 	}
 
-	err := KeepTrying(ctx, fn, WithInitialDelay(cfg.InitialDelay), WithMaxDelay(cfg.MaxDelay))
+	err := KeepTrying(ctx, fn,
+		WithInitialDelay(cfg.InitialDelay), WithMaxDelay(cfg.MaxDelay), WithMultiplier(cfg.Multiplier))
 	if err != nil {
 		t.Errorf("Não esperado erro, mas obteve: %v", err)
 	}
