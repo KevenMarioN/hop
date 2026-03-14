@@ -46,6 +46,7 @@ func (c Consumer) Validate() error {
 	if c.Name == "" {
 		errs = append(errs, errors.New("name consumer don't empty"))
 	}
+
 	if c.Exec == nil {
 		errs = append(errs, errors.New("handler don't empty"))
 	}

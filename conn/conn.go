@@ -56,9 +56,13 @@ func (h *hop) monitorConnection(ctx context.Context, url string, config amqp.Con
 
 		h.conn = newConn
 		closeChan = newConn.NotifyClose(make(chan *amqp.Error, 1))
+
+		h.restartConsumers(ctx)
 		h.reconnect <- true
+
 		return nil
 	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -75,20 +79,33 @@ func (h *hop) monitorConnection(ctx context.Context, url string, config amqp.Con
 	}
 }
 
+func (h *hop) restartConsumers(ctx context.Context) {
+	for name, consumer := range h.consumers {
+		if err := h.consume(&consumer); err != nil {
+			log.Error().Err(err).Msgf("failed restart consumer %s", name)
+		}
+		h.startConsumer(ctx, name, consumer)
+	}
+}
+
 func (c *hop) Publish(ctx context.Context, exchange, key string, body []byte) error {
 	return errors.New("don't implemented")
 }
 
-func (c *hop) Consume(ctx context.Context, args protocol.Consumer) error {
+func (c *hop) Consume(args protocol.Consumer) error {
+	return c.consume(&args)
+}
+
+func (c *hop) consume(args *protocol.Consumer) error {
 	if err := args.Validate(); err != nil {
 		return fmt.Errorf("validate consumer fail: %w", err)
 	}
 
 	if _, ok := c.consumers[args.Name]; !ok {
-		c.consumers[args.Name] = args
+		c.consumers[args.Name] = *args
 	} else {
 		args.Reconnect = true
-		c.consumers[args.Name] = args
+		c.consumers[args.Name] = *args
 	}
 
 	channel, err := c.conn.Channel()
@@ -109,7 +126,7 @@ func (c *hop) Consume(ctx context.Context, args protocol.Consumer) error {
 	}
 
 	args.Msg(msg)
-	c.consumers[args.Name] = args
+	c.consumers[args.Name] = *args
 
 	return nil
 }
@@ -122,33 +139,53 @@ func (c *hop) Close() error {
 	return nil
 }
 
+func (c *hop) Shutdown(ctx context.Context) error {
+	if err := c.wg.Wait(); err != nil {
+		return fmt.Errorf("failed wait group: %w", err)
+	}
+
+	if err := c.Close(); err != nil {
+		return fmt.Errorf("failed close connection: %w", err)
+	}
+
+	return nil
+}
+
+func (c *hop) startConsumer(ctx context.Context, name string, consumer protocol.Consumer) {
+	if !consumer.Reconnect {
+		log.Info().Msgf("Starting consume %s", name)
+	} else {
+		log.Info().Msgf("Restarting consume %s", name)
+	}
+
+	c.wg.Go(func() error {
+		for {
+			select {
+			case msg, ok := <-consumer.Listen():
+				if !ok {
+					log.Warn().Msgf("Finisher consume %s", name)
+
+					select {
+					case <-c.reconnect:
+						return nil
+					case <-ctx.Done():
+						return fmt.Errorf("await reconnect consumer context done: %w", ctx.Err())
+					}
+				} else {
+					if err := consumer.Execute(ctx, msg); err != nil {
+						return fmt.Errorf("failed execute handler: %w", err)
+					}
+				}
+			case <-ctx.Done():
+				return fmt.Errorf("start consumer context done: %w", ctx.Err())
+			}
+		}
+	})
+}
+
 func (c *hop) StartConsumers(ctx context.Context) {
 	for name, consumer := range c.consumers {
-		if !consumer.Reconnect {
-			log.Info().Msgf("Starting consume %s", name)
-		} else {
-			log.Info().Msgf("Restarting consume %s", name)
-		}
-
-		c.wg.Go(func() error {
-			for msg := range consumer.Listen() {
-				if err := consumer.Execute(ctx, msg); err != nil {
-					return fmt.Errorf("failed execute handler: %w", err)
-				}
-			}
-			log.Warn().Msgf("Finisher consume %s", name)
-			select {
-			case <-c.reconnect:
-				if err := c.Consume(ctx, consumer); err != nil {
-					return fmt.Errorf("failed restart consume %s: %w", name, err)
-				}
-				c.StartConsumers(ctx)
-			case <-ctx.Done():
-				return fmt.Errorf("context done: %w", ctx.Err())
-			}
-
-			return nil
-		})
+		c.startConsumer(ctx, name, consumer)
 	}
 }
 
@@ -156,8 +193,9 @@ func (c *hop) Wait() error {
 	if len(c.consumers) == 0 {
 		return fmt.Errorf("not have consumers for wait")
 	}
+
 	if err := c.wg.Wait(); err != nil {
-		return fmt.Errorf("failed wait group")
+		return fmt.Errorf("failed wait group: %w", err)
 	}
 
 	return nil

@@ -11,20 +11,14 @@ import (
 
 func main() {
 	ctx := context.Background()
+
 	hop, err := hop.New(ctx, "amqp://admin:admin@localhost:5672/")
 	if err != nil {
 		log.Error().Err(err).Msg("failed start connection hop")
 		return
 	}
 
-	defer func() {
-		if err := hop.Close(); err != nil {
-			log.Error().Err(err).Msg("main: failed close")
-			return
-		}
-	}()
-
-	if err := hop.Consume(ctx, protocol.Consumer{
+	if err := hop.Consume(protocol.Consumer{
 		Name:      "example",
 		AutoAck:   false,
 		NoLocal:   false,
@@ -36,8 +30,14 @@ func main() {
 			NoWait:  false,
 		},
 		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
-			defer msg.Ack(true)
+			defer func() {
+				if err := msg.Ack(true); err != nil {
+					log.Error().Err(err).Msg("Failed confirm mensage")
+				}
+			}()
+
 			log.Info().Str("consumer", "example").Msg(string(msg.Body))
+
 			return nil
 		},
 	}); err != nil {
@@ -46,7 +46,7 @@ func main() {
 
 	hop.StartConsumers(ctx)
 
-	if err := hop.Wait(); err != nil {
+	if err := hop.Shutdown(ctx); err != nil {
 		log.Error().Err(err).Msg("main: failed wait hop")
 		return
 	}

@@ -10,10 +10,10 @@ import (
 
 type Client interface {
 	Publish(ctx context.Context, exchange, key string, body []byte) error
-	Consume(ctx context.Context, args protocol.Consumer) error
+	Consume(args protocol.Consumer) error
 	StartConsumers(ctx context.Context)
-	Wait() error
 	Close() error
+	Shutdown(ctx context.Context) error
 }
 
 func New(ctx context.Context, url string, opts ...conn.HopOption) (Client, error) {
