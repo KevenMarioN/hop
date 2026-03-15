@@ -18,6 +18,7 @@ go get github.com/KevenMarioN/hop
 - [zerolog](https://github.com/rs/zerolog) - Structured logging
 - [errgroup](https://golang.org/x/sync/errgroup) - Goroutine management
 - [prometheus/client_golang](https://github.com/prometheus/client_golang) - Prometheus metrics (optional)
+- [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go) - OpenTelemetry metrics (optional)
 
 ## 🔧 Basic Usage
 
@@ -336,9 +337,56 @@ Safely closes connections and goroutines, ensuring all messages in processing ar
 
 Uses zerolog for structured and performant logging.
 
-### Prometheus Metrics
+### Dynamic Metrics
 
-Collect metrics for consumption, errors, reconnections, and connection duration. Enable with `WithMetrics()`.
+The Hop metrics system is fully decoupled and supports multiple backends:
+
+- **Prometheus**: `metrics.NewPrometheusCollector(registry)`
+- **Multi-collector**: `metrics.NewMultiCollector(collector1, collector2)`
+- **No-op**: `metrics.NopCollector` (disabled)
+
+Enable with `WithMetrics(collector)` or `WithPrometheusMetrics(registry)` for compatibility.
+
+#### Example with Prometheus
+
+```go
+import (
+    "github.com/KevenMarioN/hop"
+    "github.com/KevenMarioN/hop/conn"
+    "github.com/prometheus/client_golang/prometheus"
+)
+
+registry := prometheus.NewRegistry()
+hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
+    conn.WithPrometheusMetrics(registry),
+)
+```
+
+#### Example with multiple backends
+
+```go
+import (
+    "github.com/KevenMarioN/hop/metrics"
+    "github.com/prometheus/client_golang/prometheus"
+    "go.opentelemetry.io/otel/metric"
+)
+
+promCollector := metrics.NewPrometheusCollector(promRegistry)
+otelCollector := metrics.NewOpenTelemetryCollector(otelMeter)
+multi := metrics.NewMultiCollector(promCollector, otelCollector)
+
+hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
+    conn.WithMetrics(multi),
+)
+```
+
+#### Available metrics
+
+- `hop_messages_consumed_total` (Counter): Total messages consumed
+- `hop_consumption_errors_total` (Counter): Total consumption errors
+- `hop_reconnects_total` (Counter): Total reconnections
+- `hop_connection_duration_seconds` (Gauge): Current connection duration
+- `hop_active_consumers` (Gauge): Number of active consumers
 
 ### ConsumerBuilder
 

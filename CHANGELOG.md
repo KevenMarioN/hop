@@ -11,10 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dynamic Metrics System**: Fully decoupled metrics collection supporting multiple backends
   - New `MetricsCollector` interface for custom metric implementations
   - `PrometheusCollector` implementation for Prometheus metrics
+  - `OpenTelemetryCollector` implementation for OpenTelemetry metrics
   - `MultiCollector` for using multiple backends simultaneously
   - `NopCollector` for disabled metrics (default behavior)
 - **Prometheus Metrics Integration**: Added optional metrics collection with `WithMetrics()` option
   - Metrics: `hop_messages_consumed_total`, `hop_consumption_errors_total`, `hop_reconnects_total`, `hop_connection_duration_seconds`, `hop_active_consumers`
+- **OpenTelemetry Metrics Integration**: Added OpenTelemetry collector for modern observability stacks
 - **ConsumerBuilder**: New fluent API for building immutable Consumer configurations via `protocol.NewConsumerBuilder()`
 - **Improved Documentation**: Added comprehensive go doc comments to all public types and functions
 - **HTTP Metrics Endpoint**: New `metrics.Handler()` for exposing Prometheus metrics

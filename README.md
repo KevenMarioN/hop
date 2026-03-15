@@ -18,6 +18,7 @@ go get github.com/KevenMarioN/hop
 - [zerolog](https://github.com/rs/zerolog) - Logging estruturado
 - [errgroup](https://golang.org/x/sync/errgroup) - Gerenciamento de goroutines
 - [prometheus/client_golang](https://github.com/prometheus/client_golang) - Métricas Prometheus (opcional)
+- [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go) - Métricas OpenTelemetry (opcional)
 
 ## 🔧 Uso Básico
 
@@ -346,11 +347,12 @@ hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
 import (
     "github.com/KevenMarioN/hop/metrics"
     "github.com/prometheus/client_golang/prometheus"
+    "go.opentelemetry.io/otel/metric"
 )
 
 promCollector := metrics.NewPrometheusCollector(promRegistry)
-// otelCollector := metrics.NewOpenTelemetryCollector(otelMeter) // Futuro
-multi := metrics.NewMultiCollector(promCollector /*, otelCollector */)
+otelCollector := metrics.NewOpenTelemetryCollector(otelMeter)
+multi := metrics.NewMultiCollector(promCollector, otelCollector)
 
 hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
     conn.WithMetrics(multi),
