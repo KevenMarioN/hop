@@ -50,13 +50,23 @@ func WithServiceName(serviceName string) HopOption {
 	}
 }
 
-// WithMetrics enables Prometheus metrics collection.
-// Pass a prometheus.Registerer to register metrics automatically.
+// WithMetrics enables metrics collection using the provided collector.
+// Pass a MetricsCollector implementation (e.g., PrometheusCollector, MultiCollector).
 // If nil is passed, metrics will be disabled.
-func WithMetrics(registry prometheus.Registerer) HopOption {
+func WithMetrics(collector metrics.MetricsCollector) HopOption {
+	return func(h *hop) {
+		if collector != nil {
+			h.collector = collector
+		}
+	}
+}
+
+// WithPrometheusMetrics is a convenience wrapper for backward compatibility.
+// It creates a PrometheusCollector with the given registry.
+func WithPrometheusMetrics(registry prometheus.Registerer) HopOption {
 	return func(h *hop) {
 		if registry != nil {
-			metrics.MustRegister(registry)
+			h.collector = metrics.NewPrometheusCollector(registry)
 		}
 	}
 }

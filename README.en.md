@@ -17,7 +17,7 @@ go get github.com/KevenMarioN/hop
 - [amqp091-go](https://github.com/rabbitmq/amqp091-go) - Official AMQP client
 - [zerolog](https://github.com/rs/zerolog) - Structured logging
 - [errgroup](https://golang.org/x/sync/errgroup) - Goroutine management
-- [prometheus/client_golang](https://github.com/prometheus/client_golang) - Metrics (optional)
+- [prometheus/client_golang](https://github.com/prometheus/client_golang) - Prometheus metrics (optional)
 
 ## 🔧 Basic Usage
 
@@ -178,6 +178,20 @@ conn.WithBackoff(2, 100*time.Millisecond, 30*time.Second) // Backoff
 conn.WithTLS(tlsConfig)                   // TLS
 conn.WithServiceName("my-service")        // Nome do serviço
 conn.WithMetrics(prometheusRegistry)      // Métricas Prometheus
+```
+
+### Configuration Options
+
+```go
+import "github.com/KevenMarioN/hop/conn"
+
+// Available settings:
+conn.WithConnectionName("my-app")          // Connection name
+conn.WithBackoff(2, 100*time.Millisecond, 30*time.Second) // Backoff
+conn.WithTLS(tlsConfig)                   // TLS
+conn.WithServiceName("my-service")        // Service name
+conn.WithMetrics(collector)               // Dynamic metrics (interface)
+conn.WithPrometheusMetrics(registry)      // Prometheus metrics (convenience)
 ```
 
 ### Functions

@@ -17,7 +17,7 @@ go get github.com/KevenMarioN/hop
 - [amqp091-go](https://github.com/rabbitmq/amqp091-go) - Cliente AMQP oficial
 - [zerolog](https://github.com/rs/zerolog) - Logging estruturado
 - [errgroup](https://golang.org/x/sync/errgroup) - Gerenciamento de goroutines
-- [prometheus/client_golang](https://github.com/prometheus/client_golang) - Métricas (opcional)
+- [prometheus/client_golang](https://github.com/prometheus/client_golang) - Métricas Prometheus (opcional)
 
 ## 🔧 Uso Básico
 
@@ -169,7 +169,8 @@ conn.WithConnectionName("my-app")          // Nome da conexão
 conn.WithBackoff(2, 100*time.Millisecond, 30*time.Second) // Backoff
 conn.WithTLS(tlsConfig)                   // TLS
 conn.WithServiceName("my-service")        // Nome do serviço
-conn.WithMetrics(prometheusRegistry)      // Métricas Prometheus
+conn.WithMetrics(collector)               // Métricas dinâmicas (interface)
+conn.WithPrometheusMetrics(registry)      // Métricas Prometheus (conveniência)
 ```
 
 ### Funções
@@ -314,9 +315,55 @@ Encerra conexões e goroutines de forma segura, garantindo que todas as mensagen
 
 Utiliza zerolog para logging estruturado e performático.
 
-### Métricas Prometheus
+### Métricas Dinâmicas
 
-Colete métricas de consumo, erros, reconexões e duração da conexão. Ative com `WithMetrics()`.
+O sistema de métricas do Hop é totalmente desacoplado e suporta múltiplos backends:
+
+- **Prometheus**: `metrics.NewPrometheusCollector(registry)`
+- **Multi-collector**: `metrics.NewMultiCollector(collector1, collector2)`
+- **No-op**: `metrics.NopCollector` (desabilitado)
+
+Ative com `WithMetrics(collector)` ou `WithPrometheusMetrics(registry)` para compatibilidade.
+
+#### Exemplo com Prometheus
+
+```go
+import (
+    "github.com/KevenMarioN/hop"
+    "github.com/KevenMarioN/hop/conn"
+    "github.com/prometheus/client_golang/prometheus"
+)
+
+registry := prometheus.NewRegistry()
+hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
+    conn.WithPrometheusMetrics(registry),
+)
+```
+
+#### Exemplo com múltiplos backends
+
+```go
+import (
+    "github.com/KevenMarioN/hop/metrics"
+    "github.com/prometheus/client_golang/prometheus"
+)
+
+promCollector := metrics.NewPrometheusCollector(promRegistry)
+// otelCollector := metrics.NewOpenTelemetryCollector(otelMeter) // Futuro
+multi := metrics.NewMultiCollector(promCollector /*, otelCollector */)
+
+hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
+    conn.WithMetrics(multi),
+)
+```
+
+#### Métricas disponíveis
+
+- `hop_messages_consumed_total` (Counter): Total de mensagens consumidas
+- `hop_consumption_errors_total` (Counter): Total de erros de consumo
+- `hop_reconnects_total` (Counter): Total de reconexões
+- `hop_connection_duration_seconds` (Gauge): Duração da conexão atual
+- `hop_active_consumers` (Gauge): Número de consumers ativos
 
 ### ConsumerBuilder
 

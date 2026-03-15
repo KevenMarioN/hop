@@ -8,7 +8,6 @@ import (
 
 	"github.com/KevenMarioN/hop/metrics"
 	"github.com/KevenMarioN/hop/protocol"
-	"github.com/prometheus/client_golang/prometheus"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
@@ -21,18 +20,18 @@ type Manager struct {
 	mu        sync.RWMutex
 	wg        errgroup.Group
 	reconnect *sync.Cond
-	registry  prometheus.Registerer
+	collector metrics.MetricsCollector
 	startTime time.Time
 }
 
 // NewManager creates a new consumer manager
-func NewManager(conn *amqp.Connection, registry prometheus.Registerer) *Manager {
+func NewManager(conn *amqp.Connection, collector metrics.MetricsCollector) *Manager {
 	m := &Manager{
 		conn:      conn,
 		consumers: make(map[string]*protocol.Consumer),
 		reconnect: sync.NewCond(&sync.Mutex{}),
 		startTime: time.Now(),
-		registry:  registry,
+		collector: collector,
 	}
 
 	return m
@@ -57,8 +56,8 @@ func (m *Manager) Register(consumer *protocol.Consumer) error {
 	m.consumers[consumer.Name] = consumer
 
 	// Update active consumers metric
-	if m.registry != nil {
-		metrics.ActiveConsumers.Set(float64(len(m.consumers)))
+	if m.collector != nil {
+		m.collector.Gauge("hop_active_consumers").Set(float64(len(m.consumers)))
 	}
 
 	return nil
@@ -86,8 +85,8 @@ func (m *Manager) Start(ctx context.Context) error {
 	}
 
 	// Update active consumers metric after starting
-	if m.registry != nil {
-		metrics.ActiveConsumers.Set(float64(len(m.consumers)))
+	if m.collector != nil {
+		m.collector.Gauge("hop_active_consumers").Set(float64(len(m.consumers)))
 	}
 
 	return nil
@@ -126,16 +125,16 @@ func (m *Manager) startConsumer(ctx context.Context, name string, consumer *prot
 				} else {
 					if err := consumer.Execute(ctx, msg); err != nil {
 						// Record consumption error
-						if m.registry != nil {
-							metrics.ConsumptionErrors.WithLabelValues(consumer.Name, "handler_error").Inc()
+						if m.collector != nil {
+							m.collector.Counter("hop_consumption_errors_total", consumer.Name, "handler_error").Inc()
 						}
 
 						return fmt.Errorf("failed to execute handler: %w", err)
 					}
 
 					// Record successful message consumption
-					if m.registry != nil {
-						metrics.MessagesConsumed.WithLabelValues(consumer.Name, consumer.Queue.Name).Inc()
+					if m.collector != nil {
+						m.collector.Counter("hop_messages_consumed_total", consumer.Name, consumer.Queue.Name).Inc()
 					}
 				}
 			}
@@ -250,9 +249,9 @@ func (m *Manager) Wait() error {
 	}
 
 	// Update connection duration metric
-	if m.registry != nil {
+	if m.collector != nil {
 		duration := time.Since(m.startTime).Seconds()
-		metrics.ConnectionDuration.Set(duration)
+		m.collector.Gauge("hop_connection_duration_seconds").Set(duration)
 	}
 
 	return nil
@@ -266,7 +265,7 @@ func (m *Manager) NotifyReconnected(conn *amqp.Connection) {
 	m.reconnect.Broadcast()
 
 	// Increment reconnects metric
-	if m.registry != nil {
-		metrics.Reconnects.Inc()
+	if m.collector != nil {
+		m.collector.Counter("hop_reconnects_total").Inc()
 	}
 }

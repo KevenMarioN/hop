@@ -8,13 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dynamic Metrics System**: Fully decoupled metrics collection supporting multiple backends
+  - New `MetricsCollector` interface for custom metric implementations
+  - `PrometheusCollector` implementation for Prometheus metrics
+  - `MultiCollector` for using multiple backends simultaneously
+  - `NopCollector` for disabled metrics (default behavior)
 - **Prometheus Metrics Integration**: Added optional metrics collection with `WithMetrics()` option
   - Metrics: `hop_messages_consumed_total`, `hop_consumption_errors_total`, `hop_reconnects_total`, `hop_connection_duration_seconds`, `hop_active_consumers`
 - **ConsumerBuilder**: New fluent API for building immutable Consumer configurations via `protocol.NewConsumerBuilder()`
 - **Improved Documentation**: Added comprehensive go doc comments to all public types and functions
 - **HTTP Metrics Endpoint**: New `metrics.Handler()` for exposing Prometheus metrics
+- **Backward Compatibility**: Added `WithPrometheusMetrics()` convenience wrapper for existing code
 
 ### Changed
+- **Metrics Architecture**: Refactored metrics from global variables to interface-based system
+  - `Manager` now accepts `MetricsCollector` instead of `prometheus.Registerer`
+  - `WithMetrics()` now accepts `MetricsCollector` interface
+  - Default behavior uses `NopCollector` when no metrics configured
 - **Race Condition Fix**: Fixed potential race condition in `Manager.Start()` by copying consumer map before iteration
 - **Performance Optimization**: Removed per-message debug logging from `Consumer.Execute()` (metrics provide observability)
 - **API Documentation**: All public APIs now have proper go doc comments
@@ -25,10 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed potential nil pointer issues in metrics collection when registry is nil
 
 ### Internal
-- Added `registry` field to `Manager` and `hop` structs for metrics registration
-- Updated `NewManager` signature to accept optional `prometheus.Registerer`
+- Added `collector` field to `Manager` and `hop` structs for metrics collection
+- Updated `NewManager` signature to accept `MetricsCollector`
 - Updated all tests to compile with new `NewManager` signature
 - Added `time` import for connection duration tracking
+- Created new files: `metrics/collector.go`, `metrics/nop.go`, `metrics/prometheus.go`, `metrics/multi.go`
 
 ## [0.1.0] - 2024-01-15
 

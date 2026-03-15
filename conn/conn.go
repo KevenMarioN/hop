@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/KevenMarioN/hop/consumer"
+	"github.com/KevenMarioN/hop/metrics"
 	"github.com/KevenMarioN/hop/protocol"
 	"github.com/KevenMarioN/hop/resilience"
-	"github.com/prometheus/client_golang/prometheus"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog/log"
 )
@@ -19,7 +19,7 @@ type hop struct {
 	consumerMgr    *consumer.Manager
 	backoffConfig  backoffConfig
 	config         amqp.Config
-	registry       prometheus.Registerer
+	collector      metrics.MetricsCollector
 }
 
 // backoffConfig holds exponential backoff parameters for reconnection.
@@ -44,6 +44,7 @@ func Connect(ctx context.Context, url string, opts ...HopOption) (*hop, error) {
 			MaxDelay:     30 * time.Second,
 			Multiplier:   2.0,
 		},
+		collector: metrics.NopCollector,
 	}
 
 	for _, opt := range opts {
@@ -60,8 +61,8 @@ func Connect(ctx context.Context, url string, opts ...HopOption) (*hop, error) {
 
 	log.Info().Msgf("Connected to RabbitMQ: %s", url)
 
-	// Create consumer manager with metrics registry
-	c.consumerMgr = consumer.NewManager(c.conn, c.registry)
+	// Create consumer manager with metrics collector
+	c.consumerMgr = consumer.NewManager(c.conn, c.collector)
 
 	go c.monitorConnection(ctx, url)
 
