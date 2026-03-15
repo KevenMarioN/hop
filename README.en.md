@@ -17,6 +17,7 @@ go get github.com/KevenMarioN/hop
 - [amqp091-go](https://github.com/rabbitmq/amqp091-go) - Official AMQP client
 - [zerolog](https://github.com/rs/zerolog) - Structured logging
 - [errgroup](https://golang.org/x/sync/errgroup) - Goroutine management
+- [prometheus/client_golang](https://github.com/prometheus/client_golang) - Metrics (optional)
 
 ## 🔧 Basic Usage
 
@@ -97,6 +98,14 @@ import "github.com/KevenMarioN/hop/conn"
 hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
 	conn.WithConnectionName("my-app"),
 )
+
+// With Prometheus metrics
+import "github.com/prometheus/client_golang/prometheus"
+
+registry := prometheus.NewRegistry()
+hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
+	conn.WithMetrics(registry),
+)
 ```
 
 ### Multiple Consumers
@@ -156,6 +165,19 @@ type Client interface {
 	Shutdown(ctx context.Context) error
 	Close() error
 }
+```
+
+### Opções de Configuração
+
+```go
+import "github.com/KevenMarioN/hop/conn"
+
+// Configurações disponíveis:
+conn.WithConnectionName("my-app")          // Nome da conexão
+conn.WithBackoff(2, 100*time.Millisecond, 30*time.Second) // Backoff
+conn.WithTLS(tlsConfig)                   // TLS
+conn.WithServiceName("my-service")        // Nome do serviço
+conn.WithMetrics(prometheusRegistry)      // Métricas Prometheus
 ```
 
 ### Functions
@@ -299,6 +321,39 @@ Safely closes connections and goroutines, ensuring all messages in processing ar
 ### Structured Logging
 
 Uses zerolog for structured and performant logging.
+
+### Prometheus Metrics
+
+Collect metrics for consumption, errors, reconnections, and connection duration. Enable with `WithMetrics()`.
+
+### ConsumerBuilder
+
+API fluida para construção de consumers de forma type-safe e imutável:
+
+```go
+consumer, err := protocol.NewConsumerBuilder("my-consumer").
+    WithQueue(protocol.Queue{Name: "my-queue", Durable: true}).
+    WithExchange(&protocol.Exchange{Name: "my-exchange", Kind: protocol.Direct}).
+    WithHandler(func(ctx context.Context, msg amqp091.Delivery) error {
+        // Processa mensagem
+        return nil
+    }).
+    Build()
+```
+
+## 🛡️ Features
+
+### Auto-Reconnect
+
+The library monitors the connection and automatically reconnects in case of failure.
+
+### Resilience
+
+Implements exponential backoff for reconnections, avoiding server overload.
+
+### Graceful Shutdown
+
+Safely closes connections and goroutines, ensuring all messages in processing are completed.
 
 ## 🧪 Tests
 
