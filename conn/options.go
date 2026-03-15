@@ -1,6 +1,9 @@
 package conn
 
-import "time"
+import (
+	"crypto/tls"
+	"time"
+)
 
 type HopOption func(*hop)
 
@@ -17,5 +20,17 @@ func WithBackoff(multiplier float64, initialDelay, maxDelay time.Duration) HopOp
 			MaxDelay:     maxDelay,
 			Multiplier:   multiplier,
 		}
+	}
+}
+
+func WithTLS(tls *tls.Config) HopOption {
+	return func(h *hop) {
+		h.config.TLSClientConfig = tls
+	}
+}
+
+func WithServiceName(serviceName string) HopOption {
+	return func(h *hop) {
+		h.config.Properties["service_name"] = serviceName
 	}
 }

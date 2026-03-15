@@ -20,6 +20,7 @@ type hop struct {
 	wg             errgroup.Group
 	reconnect      *sync.Cond
 	backoffConfig  backoffConfig
+	config         amqp.Config
 }
 
 type backoffConfig struct {
@@ -34,32 +35,32 @@ func Connect(ctx context.Context, url string, opts ...HopOption) (*hop, error) {
 		connectionName: "hop-consumer",
 		consumers:      make(map[string]protocol.Consumer, 0),
 		reconnect:      sync.NewCond(&sync.Mutex{}),
+		config:         amqp.Config{Properties: amqp.NewConnectionProperties()},
 	}
 
 	for _, opt := range opts {
 		opt(c)
 	}
 
-	config := amqp.Config{Properties: amqp.NewConnectionProperties()}
-	config.Properties.SetClientConnectionName(c.connectionName)
+	c.config.Properties.SetClientConnectionName(c.connectionName)
 
 	var err error
 
-	if c.conn, err = amqp.DialConfig(url, config); err != nil {
+	if c.conn, err = amqp.DialConfig(url, c.config); err != nil {
 		return nil, fmt.Errorf("failed to initialize hop connection: %w", err)
 	}
 
 	log.Info().Msgf("Connected to RabbitMQ: %s", url)
 
-	go c.monitorConnection(ctx, url, config)
+	go c.monitorConnection(ctx, url)
 
 	return c, nil
 }
 
-func (h *hop) monitorConnection(ctx context.Context, url string, config amqp.Config) {
+func (h *hop) monitorConnection(ctx context.Context, url string) {
 	closeChan := h.conn.NotifyClose(make(chan *amqp.Error, 1))
 	tryReconnect := func() error {
-		newConn, err := amqp.DialConfig(url, config)
+		newConn, err := amqp.DialConfig(url, h.config)
 		if err != nil {
 			return err
 		}
