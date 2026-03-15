@@ -3,6 +3,7 @@ package conn
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/KevenMarioN/hop/protocol"
@@ -17,7 +18,7 @@ type hop struct {
 	connectionName string
 	consumers      map[string]protocol.Consumer
 	wg             errgroup.Group
-	reconnect      chan bool
+	reconnect      *sync.Cond
 	backoffConfig  backoffConfig
 }
 
@@ -32,7 +33,7 @@ func Connect(ctx context.Context, url string, opts ...HopOption) (*hop, error) {
 		conn:           nil,
 		connectionName: "hop-consumer",
 		consumers:      make(map[string]protocol.Consumer, 0),
-		reconnect:      make(chan bool, 1),
+		reconnect:      sync.NewCond(&sync.Mutex{}),
 	}
 
 	for _, opt := range opts {
@@ -66,7 +67,7 @@ func (h *hop) monitorConnection(ctx context.Context, url string, config amqp.Con
 		h.conn = newConn
 		closeChan = newConn.NotifyClose(make(chan *amqp.Error, 1))
 
-		h.reconnect <- true
+		h.reconnect.Broadcast()
 
 		log.Info().Msg("Successfully reconnected to RabbitMQ")
 
@@ -190,16 +191,16 @@ func (c *hop) startConsumer(ctx context.Context, name string, consumer protocol.
 				if !ok {
 					log.Warn().Msgf("Consumer %s finished", name)
 
-					select {
-					case <-c.reconnect:
-						if err := c.consume(&consumer); err != nil {
-							return fmt.Errorf("failed restarting consumer")
-						}
+					// Wait for reconnection signal using sync.Cond
+					c.reconnect.L.Lock()
+					c.reconnect.Wait()
+					c.reconnect.L.Unlock()
 
-						log.Info().Msgf("Consumer %s reset successful", name)
-					case <-ctx.Done():
-						return fmt.Errorf("awaiting reconnection consumer context done: %w", ctx.Err())
+					if err := c.consume(&consumer); err != nil {
+						return fmt.Errorf("failed restarting consumer")
 					}
+
+					log.Info().Msgf("Consumer %s reset successful", name)
 				} else {
 					if err := consumer.Execute(ctx, msg); err != nil {
 						return fmt.Errorf("failed to execute handler: %w", err)
