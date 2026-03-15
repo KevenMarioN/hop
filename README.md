@@ -28,6 +28,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/KevenMarioN/hop"
 	"github.com/KevenMarioN/hop/protocol"
@@ -40,9 +41,14 @@ func main() {
 	// Cria conexão com RabbitMQ
 	hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to create connection: %v", err)
 	}
-	defer hopClient.Close()
+
+	defer func() {
+		if err := hopClient.Close(); err != nil {
+			fmt.Print(err)
+		}
+	}()
 
 	// Registra consumer
 	err = hopClient.Consume(protocol.Consumer{
@@ -53,13 +59,20 @@ func main() {
 			Durable: true,
 		},
 		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
-			defer msg.Ack(true)
+			defer func() {
+				if err := msg.Ack(true); err != nil {
+					fmt.Print(err)
+				}
+			}()
+
 			fmt.Printf("Mensagem recebida: %s\n", string(msg.Body))
+
 			return nil
 		},
 	})
 	if err != nil {
-		panic(err)
+		fmt.Printf("Failed to register consumer: %v", err)
+		return
 	}
 
 	// Inicia consumers
@@ -67,7 +80,8 @@ func main() {
 
 	// Aguarda conclusão
 	if err := hopClient.Shutdown(ctx); err != nil {
-		panic(err)
+		fmt.Printf("Failed to shutdown: %v", err)
+		return
 	}
 }
 ```
@@ -137,7 +151,6 @@ if err := hopClient.Shutdown(ctx); err != nil {
 
 ```go
 type Client interface {
-	Publish(ctx context.Context, exchange, key string, body []byte) error
 	Consume(args protocol.Consumer) error
 	StartConsumers(ctx context.Context)
 	Shutdown(ctx context.Context) error
@@ -203,6 +216,7 @@ Configuração de um consumer.
 ```go
 type Consumer struct {
 	Name      string                 // Nome do consumer
+	Key       string                 // Chave de binding (para exchanges)
 	AutoAck   bool                   // Auto-acknowledge
 	NoLocal   bool                   // Não consumir mensagens publicadas localmente
 	Exclusive bool                   // Consumer exclusivo
@@ -211,7 +225,6 @@ type Consumer struct {
 	Queue     Queue                  // Configuração da fila
 	Exchange  *Exchange              // Configuração do exchange (opcional)
 	Exec      Handler                // Função de processamento
-	Reconnect bool                   // Flag de reconexão (interno)
 }
 ```
 
@@ -221,11 +234,29 @@ Configuração da fila.
 
 ```go
 type Queue struct {
-	Durable    bool            // Fila durável
+	Durable           bool            // Fila durável
+	AutoDelete        bool            // Deletar automaticamente quando vazia
+	Exclusive         bool            // Fila exclusiva para conexão
+	NoWait            bool            // Não aguardar confirmação
+	Name              string          // Nome da fila
+	Headers           map[string]any  // Headers personalizados
+	ShouldCreateQueue bool            // Flag para criar fila automaticamente
+}
+```
+
+#### `protocol.Exchange`
+
+Configuração do exchange.
+
+```go
+type Exchange struct {
+	Durable    bool            // Exchange durável
 	AutoDelete bool            // Deletar automaticamente quando vazia
-	Exclusive  bool            // Fila exclusiva para conexão
+	Exclusive  bool            // Exchange exclusiva para conexão
 	NoWait     bool            // Não aguardar confirmação
-	Name       string          // Nome da fila
+	Internal   bool            // Exchange interna
+	Kind       Kind            // Tipo de exchange (fanout, topic, direct)
+	Name       string          // Nome do exchange
 	Headers    map[string]any  // Headers personalizados
 }
 ```
@@ -236,6 +267,19 @@ Função de processamento de mensagens.
 
 ```go
 type Handler func(ctx context.Context, msg amqp091.Delivery) error
+```
+
+#### `protocol.Kind`
+
+Tipos de exchange disponíveis.
+
+```go
+const (
+	Fanout  Kind = "fanout"
+	Topic   Kind = "topic"
+	Direct  Kind = "direct"
+	Default Kind = ""
+)
 ```
 
 ## 🛡️ Recursos
@@ -272,7 +316,7 @@ go test -cover ./...
 
 ## 📝 Exemplos
 
-Veja o diretório `cmd/consumer_example/` para exemplos completos de uso.
+Veja o diretório `examples/basic/` para exemplos completos de uso.
 
 ## 🤝 Contribuindo
 
