@@ -84,6 +84,6 @@ func (c *Consumer) Handler(handler Handler) {
 }
 
 func (c *Consumer) Execute(ctx context.Context, msg amqp.Delivery) error {
-	log.Info().Str("consumer", c.Name).Str("queue", c.Queue.Name).Int("size_body", len(msg.Body)).Msg("received message")
+	log.Debug().Str("consumer", c.Name).Str("queue", c.Queue.Name).Int("size_body", len(msg.Body)).Msg("received message")
 	return c.Exec(ctx, msg)
 }

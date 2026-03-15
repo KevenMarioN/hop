@@ -3,22 +3,19 @@ package conn
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
+	"github.com/KevenMarioN/hop/consumer"
 	"github.com/KevenMarioN/hop/protocol"
 	"github.com/KevenMarioN/hop/resilience"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/sync/errgroup"
 )
 
 type hop struct {
 	conn           *amqp.Connection
 	connectionName string
-	consumers      map[string]protocol.Consumer
-	wg             errgroup.Group
-	reconnect      *sync.Cond
+	consumerMgr    *consumer.Manager
 	backoffConfig  backoffConfig
 	config         amqp.Config
 }
@@ -33,9 +30,12 @@ func Connect(ctx context.Context, url string, opts ...HopOption) (*hop, error) {
 	c := &hop{
 		conn:           nil,
 		connectionName: "hop-consumer",
-		consumers:      make(map[string]protocol.Consumer, 0),
-		reconnect:      sync.NewCond(&sync.Mutex{}),
 		config:         amqp.Config{Properties: amqp.NewConnectionProperties()},
+		backoffConfig: backoffConfig{
+			InitialDelay: 100 * time.Millisecond,
+			MaxDelay:     30 * time.Second,
+			Multiplier:   2.0,
+		},
 	}
 
 	for _, opt := range opts {
@@ -51,6 +51,9 @@ func Connect(ctx context.Context, url string, opts ...HopOption) (*hop, error) {
 	}
 
 	log.Info().Msgf("Connected to RabbitMQ: %s", url)
+
+	// Create consumer manager
+	c.consumerMgr = consumer.NewManager(c.conn)
 
 	go c.monitorConnection(ctx, url)
 
@@ -68,8 +71,8 @@ func (h *hop) monitorConnection(ctx context.Context, url string) {
 		h.conn = newConn
 		closeChan = newConn.NotifyClose(make(chan *amqp.Error, 1))
 
-		h.reconnect.Broadcast()
-
+		// Notify consumer manager about reconnection
+		h.consumerMgr.NotifyReconnected(h.conn)
 		log.Info().Msg("Successfully reconnected to RabbitMQ")
 
 		return nil
@@ -101,65 +104,7 @@ func (c *hop) Publish(ctx context.Context, exchange, key string, body []byte) er
 }
 
 func (c *hop) Consume(args protocol.Consumer) error {
-	return c.consume(&args)
-}
-
-func (c *hop) consume(args *protocol.Consumer) error {
-	if err := args.Validate(); err != nil {
-		return fmt.Errorf("consumer validation failed: %w", err)
-	}
-
-	var newConsumer bool
-
-	if _, ok := c.consumers[args.Name]; !ok {
-		c.consumers[args.Name] = *args
-		newConsumer = true
-	}
-
-	channel, err := c.conn.Channel()
-	if err != nil {
-		return fmt.Errorf("failed to start channel for queue %s: %w", args.Queue.Name, err)
-	}
-
-	if args.Queue.ShouldCreateQueue {
-		if _, err := channel.QueueDeclare(
-			args.Queue.Name, args.Queue.Durable, args.Queue.AutoDelete, args.Queue.Exclusive,
-			args.Queue.NoWait, args.Queue.Headers); err != nil {
-			return fmt.Errorf("failed to declare queue %s: %w", args.Queue.Name, err)
-		}
-
-		if args.Exchange != nil {
-			if err := channel.ExchangeDeclare(
-				args.Exchange.Name, args.Exchange.Kind.String(), args.Exchange.Durable,
-				args.Exchange.AutoDelete, args.Exchange.Internal, args.Exchange.NoWait, args.Exchange.Headers); err != nil {
-				return fmt.Errorf("failed to declare exchange %s: %w", args.Queue.Name, err)
-			}
-
-			if args.Key == "" {
-				args.Key = args.Queue.Name
-			}
-
-			if err := channel.QueueBind(
-				args.Queue.Name, args.Key, args.Exchange.Name, args.Exchange.NoWait, args.Headers); err != nil {
-				return fmt.Errorf("failed to bind exchange %s: %w", args.Queue.Name, err)
-			}
-		}
-	}
-
-	msg, err := channel.Consume(args.Queue.Name, args.Name, args.AutoAck, args.Exclusive,
-		args.NoLocal, args.NoWait, args.Headers)
-	if err != nil {
-		return fmt.Errorf("failed to start consumer: %w", err)
-	}
-
-	args.Msg(msg)
-	c.consumers[args.Name] = *args
-
-	if newConsumer {
-		log.Info().Msgf("Consumer %s registered successfully for queue %s", args.Name, args.Queue.Name)
-	}
-
-	return nil
+	return c.consumerMgr.Register(&args)
 }
 
 func (c *hop) Close() error {
@@ -171,8 +116,8 @@ func (c *hop) Close() error {
 }
 
 func (c *hop) Shutdown(ctx context.Context) error {
-	if err := c.wg.Wait(); err != nil {
-		return fmt.Errorf("failed to wait for consumer group: %w", err)
+	if err := c.consumerMgr.Wait(); err != nil {
+		return fmt.Errorf("failed to wait consumer manager: %w", err)
 	}
 
 	if err := c.Close(); err != nil {
@@ -182,52 +127,12 @@ func (c *hop) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func (c *hop) startConsumer(ctx context.Context, name string, consumer protocol.Consumer) {
-	log.Info().Msgf("Starting consumer %s", name)
-
-	c.wg.Go(func() error {
-		for {
-			select {
-			case msg, ok := <-consumer.Listen():
-				if !ok {
-					log.Warn().Msgf("Consumer %s finished", name)
-
-					// Wait for reconnection signal using sync.Cond
-					c.reconnect.L.Lock()
-					c.reconnect.Wait()
-					c.reconnect.L.Unlock()
-
-					if err := c.consume(&consumer); err != nil {
-						return fmt.Errorf("failed restarting consumer")
-					}
-
-					log.Info().Msgf("Consumer %s reset successful", name)
-				} else {
-					if err := consumer.Execute(ctx, msg); err != nil {
-						return fmt.Errorf("failed to execute handler: %w", err)
-					}
-				}
-			case <-ctx.Done():
-				return fmt.Errorf("consumer context done: %w", ctx.Err())
-			}
-		}
-	})
-}
-
 func (c *hop) StartConsumers(ctx context.Context) {
-	for name, consumer := range c.consumers {
-		c.startConsumer(ctx, name, consumer)
+	if err := c.consumerMgr.Start(ctx); err != nil {
+		log.Error().Err(err).Msg("Failed to start consumers")
 	}
 }
 
 func (c *hop) Wait() error {
-	if len(c.consumers) == 0 {
-		return ErrNoConsumers
-	}
-
-	if err := c.wg.Wait(); err != nil {
-		return fmt.Errorf("failed to wait for consumer group: %w", err)
-	}
-
-	return nil
+	return c.consumerMgr.Wait()
 }

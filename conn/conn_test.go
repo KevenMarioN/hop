@@ -6,14 +6,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/KevenMarioN/hop/consumer"
 	"github.com/KevenMarioN/hop/protocol"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 // TestWaitWithoutConsumers tests wait without consumers
 func TestWaitWithoutConsumers(t *testing.T) {
+	mgr := consumer.NewManager(&amqp.Connection{})
 	hop := &hop{
-		consumers: make(map[string]protocol.Consumer),
+		consumerMgr: mgr,
 	}
 
 	err := hop.Wait()
@@ -21,7 +23,7 @@ func TestWaitWithoutConsumers(t *testing.T) {
 		t.Error("Expected error 'no consumers registered', but got nil")
 	}
 
-	if !errors.Is(err, ErrNoConsumers) {
+	if !strings.Contains(err.Error(), "no consumers registered") {
 		t.Errorf("Unexpected error: %v", err)
 	}
 }
@@ -43,7 +45,8 @@ func TestPublishNotImplemented(t *testing.T) {
 // TestConsumeWithValidationError tests consume with validation error
 func TestConsumeWithValidationError(t *testing.T) {
 	hop := &hop{
-		conn: &amqp.Connection{},
+		conn:        &amqp.Connection{},
+		consumerMgr: consumer.NewManager(&amqp.Connection{}),
 	}
 
 	// Consumer com nome vazio
@@ -67,7 +70,8 @@ func TestConsumeWithValidationError(t *testing.T) {
 // TestConsumeWithNullHandler tests consume with null handler
 func TestConsumeWithNullHandler(t *testing.T) {
 	hop := &hop{
-		conn: &amqp.Connection{},
+		conn:        &amqp.Connection{},
+		consumerMgr: consumer.NewManager(&amqp.Connection{}),
 	}
 
 	// Consumer com handler nulo
