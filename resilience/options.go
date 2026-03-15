@@ -2,10 +2,10 @@ package resilience
 
 import "time"
 
-// Option para configurar o Backoff
+// Option to configure the Backoff
 type BackoffOption func(*BackoffConfig)
 
-// WithInitialDelay configura o delay inicial
+// WithInitialDelay configures the initial delay
 func WithInitialDelay(d time.Duration) BackoffOption {
 	return func(c *BackoffConfig) {
 		if d > 0 {
@@ -14,7 +14,7 @@ func WithInitialDelay(d time.Duration) BackoffOption {
 	}
 }
 
-// WithMaxDelay configura o teto máximo de espera
+// WithMaxDelay configures the maximum wait ceiling
 func WithMaxDelay(d time.Duration) BackoffOption {
 	return func(c *BackoffConfig) {
 		if d > 0 {
@@ -23,7 +23,7 @@ func WithMaxDelay(d time.Duration) BackoffOption {
 	}
 }
 
-// WithMultiplier configura o teto máximo de espera
+// WithMultiplier configures the maximum wait ceiling
 func WithMultiplier(e float64) BackoffOption {
 	return func(c *BackoffConfig) {
 		if e > 0 {

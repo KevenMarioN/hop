@@ -13,10 +13,10 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// Cria conexão com RabbitMQ
+	// Create connection with RabbitMQ
 	hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/")
 	if err != nil {
-		log.Fatalf("Falha ao criar conexão: %v", err)
+		log.Fatalf("Failed to create connection: %v", err)
 	}
 
 	defer func() {
@@ -25,7 +25,7 @@ func main() {
 		}
 	}()
 
-	// Registra consumer
+	// Register consumer
 	err = hopClient.Consume(protocol.Consumer{
 		Name:    "my-consumer",
 		AutoAck: false,
@@ -40,22 +40,22 @@ func main() {
 				}
 			}()
 
-			fmt.Printf("Mensagem recebida: %s\n", string(msg.Body))
+			fmt.Printf("Received message: %s\n", string(msg.Body))
 
 			return nil
 		},
 	})
 	if err != nil {
-		fmt.Printf("Falha ao registrar consumer: %v", err)
+		fmt.Printf("Failed to register consumer: %v", err)
 		return
 	}
 
-	// Inicia consumers
+	// Start consumers
 	hopClient.StartConsumers(ctx)
 
-	// Aguarda conclusão
+	// Wait for completion
 	if err := hopClient.Shutdown(ctx); err != nil {
-		fmt.Printf("Falha no shutdown: %v", err)
+		fmt.Printf("Failed to shutdown: %v", err)
 		return
 	}
 }

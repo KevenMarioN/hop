@@ -18,11 +18,11 @@ func TestKeepTryingWithImmediateSuccess(t *testing.T) {
 
 	err := KeepTrying(ctx, fn)
 	if err != nil {
-		t.Errorf("Não esperado erro, mas obteve: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 
 	if !called {
-		t.Error("Função não foi chamada")
+		t.Error("Function was not called")
 	}
 }
 
@@ -41,11 +41,11 @@ func TestKeepTryingWithTemporaryFailure(t *testing.T) {
 
 	err := KeepTrying(ctx, fn)
 	if err != nil {
-		t.Errorf("Não esperado erro, mas obteve: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 
 	if callCount != 3 {
-		t.Errorf("Esperado 3 chamadas, mas obteve %d", callCount)
+		t.Errorf("Expected 3 calls, but got %d", callCount)
 	}
 }
 
@@ -60,11 +60,11 @@ func TestKeepTryingWithCancelledContext(t *testing.T) {
 
 	err := KeepTrying(ctx, fn)
 	if err == nil {
-		t.Error("Esperado erro de contexto cancelado, mas obteve nil")
+		t.Error("Expected cancelled context error, but got nil")
 	}
 
 	if !errors.Is(err, context.Canceled) {
-		t.Errorf("Erro inesperado: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
@@ -90,11 +90,11 @@ func TestKeepTryingWithCustomConfig(t *testing.T) {
 	err := KeepTrying(ctx, fn,
 		WithInitialDelay(cfg.InitialDelay), WithMaxDelay(cfg.MaxDelay), WithMultiplier(cfg.Multiplier))
 	if err != nil {
-		t.Errorf("Não esperado erro, mas obteve: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 
 	if callCount != 3 {
-		t.Errorf("Esperado 3 chamadas, mas obteve %d", callCount)
+		t.Errorf("Expected 3 calls, but got %d", callCount)
 	}
 }
 
@@ -110,11 +110,11 @@ func TestKeepTryingWithTimeout(t *testing.T) {
 
 	err := KeepTrying(ctx, fn)
 	if err == nil {
-		t.Error("Esperado erro de timeout, mas obteve nil")
+		t.Error("Expected timeout error, but got nil")
 	}
 
 	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Errorf("Erro inesperado: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
@@ -128,11 +128,11 @@ func TestRetryOnceWithSuccess(t *testing.T) {
 
 	err := RetryOnce(fn)
 	if err != nil {
-		t.Errorf("Não esperado erro, mas obteve: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 
 	if !called {
-		t.Error("Função não foi chamada")
+		t.Error("Function was not called")
 	}
 }
 
@@ -145,11 +145,11 @@ func TestRetryOnceWithFailure(t *testing.T) {
 
 	err := RetryOnce(fn)
 	if err == nil {
-		t.Error("Esperado erro, mas obteve nil")
+		t.Error("Expected error, but got nil")
 	}
 
 	if !errors.Is(err, expectedErr) {
-		t.Errorf("Erro inesperado: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
@@ -162,7 +162,7 @@ func TestWithInitialDelay(t *testing.T) {
 	opt(&cfg)
 
 	if cfg.InitialDelay != initialDelay {
-		t.Errorf("InitialDelay não configurado corretamente. Esperado: %v, Obtido: %v", initialDelay, cfg.InitialDelay)
+		t.Errorf("InitialDelay not configured correctly. Expected: %v, Got: %v", initialDelay, cfg.InitialDelay)
 	}
 }
 
@@ -175,7 +175,7 @@ func TestWithMaxDelay(t *testing.T) {
 	opt(&cfg)
 
 	if cfg.MaxDelay != maxDelay {
-		t.Errorf("MaxDelay não configurado corretamente. Esperado: %v, Obtido: %v", maxDelay, cfg.MaxDelay)
+		t.Errorf("MaxDelay not configured correctly. Expected: %v, Got: %v", maxDelay, cfg.MaxDelay)
 	}
 }
 
@@ -184,14 +184,14 @@ func TestDefaultConfig(t *testing.T) {
 	cfg := defaultConfig()
 
 	if cfg.InitialDelay != 100*time.Millisecond {
-		t.Errorf("InitialDelay padrão incorreto. Esperado: 100ms, Obtido: %v", cfg.InitialDelay)
+		t.Errorf("InitialDelay default incorrect. Expected: 100ms, Got: %v", cfg.InitialDelay)
 	}
 
 	if cfg.MaxDelay != 30*time.Second {
-		t.Errorf("MaxDelay padrão incorreto. Esperado: 30s, Obtido: %v", cfg.MaxDelay)
+		t.Errorf("MaxDelay default incorrect. Expected: 30s, Got: %v", cfg.MaxDelay)
 	}
 
 	if cfg.Multiplier != 2.0 {
-		t.Errorf("Multiplier padrão incorreto. Esperado: 2.0, Obtido: %v", cfg.Multiplier)
+		t.Errorf("Multiplier default incorrect. Expected: 2.0, Got: %v", cfg.Multiplier)
 	}
 }

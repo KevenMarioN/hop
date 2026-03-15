@@ -36,7 +36,7 @@ func main() {
 		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
 			defer func() {
 				if err := msg.Ack(true); err != nil {
-					log.Error().Err(err).Msg("Failed confirm mensage")
+					log.Error().Err(err).Msg("Failed to confirm message")
 				}
 			}()
 
@@ -69,7 +69,7 @@ func main() {
 		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
 			defer func() {
 				if err := msg.Ack(true); err != nil {
-					log.Error().Err(err).Msg("Failed confirm mensage")
+					log.Error().Err(err).Msg("Failed to confirm message")
 				}
 			}()
 
