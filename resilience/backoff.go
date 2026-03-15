@@ -47,6 +47,7 @@ func KeepTrying(ctx context.Context, fn func() error, opts ...BackoffOption) err
 		case <-time.After(currentDelay):
 			attemptCount++
 			log.Warn().Msgf("Retrying operation (attempt %d) after %v delay", attemptCount, currentDelay)
+
 			if err := fn(); err == nil {
 				return nil
 			}

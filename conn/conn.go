@@ -119,10 +119,29 @@ func (c *hop) consume(args *protocol.Consumer) error {
 		return fmt.Errorf("failed to start channel for queue %s: %w", args.Queue.Name, err)
 	}
 
-	if _, err := channel.QueueDeclare(
-		args.Queue.Name, args.Queue.Durable, args.Queue.AutoDelete, args.Queue.Exclusive,
-		args.Queue.NoWait, args.Queue.Headers); err != nil {
-		return fmt.Errorf("failed to declare queue %s: %w", args.Queue.Name, err)
+	if args.Queue.ShouldCreateQueue {
+		if _, err := channel.QueueDeclare(
+			args.Queue.Name, args.Queue.Durable, args.Queue.AutoDelete, args.Queue.Exclusive,
+			args.Queue.NoWait, args.Queue.Headers); err != nil {
+			return fmt.Errorf("failed to declare queue %s: %w", args.Queue.Name, err)
+		}
+
+		if args.Exchange != nil {
+			if err := channel.ExchangeDeclare(
+				args.Exchange.Name, args.Exchange.Kind.String(), args.Exchange.Durable,
+				args.Exchange.AutoDelete, args.Exchange.Internal, args.Exchange.NoWait, args.Exchange.Headers); err != nil {
+				return fmt.Errorf("failed to declare exchange %s: %w", args.Queue.Name, err)
+			}
+
+			if args.Key == "" {
+				args.Key = args.Queue.Name
+			}
+
+			if err := channel.QueueBind(
+				args.Queue.Name, args.Key, args.Exchange.Name, args.Exchange.NoWait, args.Headers); err != nil {
+				return fmt.Errorf("failed to bind exchange %s: %w", args.Queue.Name, err)
+			}
+		}
 	}
 
 	msg, err := channel.Consume(args.Queue.Name, args.Name, args.AutoAck, args.Exclusive,

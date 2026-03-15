@@ -5,17 +5,32 @@ import (
 	"errors"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/rs/zerolog/log"
+)
+
+type Kind string
+
+func (k Kind) String() string {
+	return string(k)
+}
+
+const (
+	Fanout  Kind = "fanout"
+	Topic   Kind = "topic"
+	Direct  Kind = "direct"
+	Default Kind = ""
 )
 
 type Handler func(ctx context.Context, msg amqp.Delivery) error
 
 type Queue struct {
-	Durable    bool
-	AutoDelete bool
-	Exclusive  bool
-	NoWait     bool
-	Name       string
-	Headers    map[string]any
+	Durable           bool
+	AutoDelete        bool
+	Exclusive         bool
+	NoWait            bool
+	Name              string
+	Headers           map[string]any
+	ShouldCreateQueue bool
 }
 
 type Exchange struct {
@@ -23,12 +38,15 @@ type Exchange struct {
 	AutoDelete bool
 	Exclusive  bool
 	NoWait     bool
+	Internal   bool
+	Kind       Kind
 	Name       string
 	Headers    map[string]any
 }
 
 type Consumer struct {
 	Name      string
+	Key       string
 	AutoAck   bool
 	NoLocal   bool
 	Exclusive bool
@@ -66,5 +84,6 @@ func (c *Consumer) Handler(handler Handler) {
 }
 
 func (c *Consumer) Execute(ctx context.Context, msg amqp.Delivery) error {
+	log.Info().Str("consumer", c.Name).Str("queue", c.Queue.Name).Int("size_body", len(msg.Body)).Msg("received message")
 	return c.Exec(ctx, msg)
 }

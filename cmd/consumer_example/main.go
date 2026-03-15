@@ -28,9 +28,43 @@ func main() {
 		Exclusive: false,
 		NoWait:    false,
 		Queue: protocol.Queue{
+			Durable:           true,
+			Name:              "example.queue",
+			NoWait:            false,
+			ShouldCreateQueue: true,
+		},
+		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
+			defer func() {
+				if err := msg.Ack(true); err != nil {
+					log.Error().Err(err).Msg("Failed confirm mensage")
+				}
+			}()
+
+			log.Info().Str("consumer", "example").Msg(string(msg.Body))
+
+			return nil
+		},
+	}); err != nil {
+		log.Error().Err(err).Msg("main: failed consume")
+	}
+
+	if err := hop.Consume(protocol.Consumer{
+		Name:      "example-hop-eruo",
+		AutoAck:   false,
+		NoLocal:   false,
+		Exclusive: false,
+		NoWait:    false,
+		Queue: protocol.Queue{
+			Durable:           true,
+			Name:              "example.queue.euro",
+			NoWait:            false,
+			ShouldCreateQueue: true,
+		},
+		Key: "transferencia",
+		Exchange: &protocol.Exchange{
 			Durable: true,
-			Name:    "example.queue",
-			NoWait:  false,
+			Kind:    protocol.Direct,
+			Name:    "banco",
 		},
 		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
 			defer func() {
