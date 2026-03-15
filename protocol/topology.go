@@ -5,57 +5,89 @@ import (
 	"errors"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/rs/zerolog/log"
 )
 
+// Kind represents the type of AMQP exchange.
 type Kind string
 
 func (k Kind) String() string {
 	return string(k)
 }
 
+// Supported exchange types.
 const (
-	Fanout  Kind = "fanout"
-	Topic   Kind = "topic"
-	Direct  Kind = "direct"
-	Default Kind = ""
+	Fanout  Kind = "fanout" // Fanout exchange broadcasts to all bound queues
+	Topic   Kind = "topic"  // Topic exchange routes based on pattern matching
+	Direct  Kind = "direct" // Direct exchange routes by exact routing key
+	Default Kind = ""       // Default exchange (amq.direct)
 )
 
+// Handler is a function that processes a consumed message.
+// It receives the context (for cancellation/timeout) and the AMQP delivery.
+// Return nil to acknowledge the message, or an error to trigger retry/NACK.
 type Handler func(ctx context.Context, msg amqp.Delivery) error
 
+// Queue defines the configuration for a RabbitMQ queue.
 type Queue struct {
-	Durable           bool
-	AutoDelete        bool
-	Exclusive         bool
-	NoWait            bool
-	Name              string
-	Headers           map[string]any
+	// Durable indicates if the queue survives broker restarts.
+	Durable bool
+	// AutoDelete indicates if the queue is automatically deleted when no consumers.
+	AutoDelete bool
+	// Exclusive indicates if the queue is only accessible by the current connection.
+	Exclusive bool
+	// NoWait indicates if the server should respond immediately (no wait for confirmation).
+	NoWait bool
+	// Name is the queue identifier. Empty means server-generated name.
+	Name string
+	// Headers are additional arguments for queue declaration (used by plugins).
+	Headers map[string]any
+	// ShouldCreateQueue indicates if this library should declare the queue.
+	// Set to false if queue is managed externally.
 	ShouldCreateQueue bool
 }
 
+// Exchange defines the configuration for a RabbitMQ exchange.
 type Exchange struct {
-	Durable    bool
+	// Durable indicates if the exchange survives broker restarts.
+	Durable bool
+	// AutoDelete indicates if the exchange is automatically deleted when no queues bound.
 	AutoDelete bool
-	Exclusive  bool
-	NoWait     bool
-	Internal   bool
-	Kind       Kind
-	Name       string
-	Headers    map[string]any
+	// Exclusive indicates if the exchange is only accessible by the current connection.
+	Exclusive bool
+	// NoWait indicates if the server should respond immediately.
+	NoWait bool
+	// Internal indicates if the exchange is for internal broker use only.
+	Internal bool
+	// Kind is the exchange type (fanout, topic, direct, etc.).
+	Kind Kind
+	// Name is the exchange identifier.
+	Name string
+	// Headers are additional arguments for exchange declaration.
+	Headers map[string]any
 }
 
+// Consumer represents a complete consumer configuration including queue, exchange, and handler.
 type Consumer struct {
-	Name      string
-	Key       string
-	AutoAck   bool
-	NoLocal   bool
+	// Name is a unique identifier for this consumer (used for logging and management).
+	Name string
+	// Key is the routing key for binding queue to exchange. Empty uses queue name.
+	Key string
+	// AutoAck indicates if messages are automatically acknowledged upon receipt.
+	AutoAck bool
+	// NoLocal indicates if messages published on this connection are not consumed.
+	NoLocal bool
+	// Exclusive indicates if only this consumer can access the queue.
 	Exclusive bool
-	NoWait    bool
-	Headers   map[string]any
-	Queue     Queue
-	Exchange  *Exchange
-	msg       <-chan amqp.Delivery
-	Exec      Handler
+	// NoWait indicates if the server should respond immediately to consume request.
+	NoWait bool
+	// Headers are additional arguments for the consume request.
+	Headers map[string]any
+	// Queue configuration for the target queue.
+	Queue Queue
+	// Exchange configuration (optional). If nil, uses default exchange.
+	Exchange *Exchange
+	msg      <-chan amqp.Delivery
+	Exec     Handler // Public field for handler function (required)
 }
 
 func (c Consumer) Validate() error {
@@ -84,6 +116,7 @@ func (c *Consumer) Handler(handler Handler) {
 }
 
 func (c *Consumer) Execute(ctx context.Context, msg amqp.Delivery) error {
-	log.Debug().Str("consumer", c.Name).Str("queue", c.Queue.Name).Int("size_body", len(msg.Body)).Msg("received message")
+	// Logging removed for performance; metrics track consumption.
+	// Enable debug logging in zerolog if per-message logging is needed.
 	return c.Exec(ctx, msg)
 }

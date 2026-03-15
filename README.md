@@ -4,7 +4,7 @@
 [![GoDoc](https://godoc.org/github.com/KevenMarioN/hop?status.svg)](https://godoc.org/github.com/KevenMarioN/hop)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Hop é uma biblioteca Go simples e resiliente para conexão com RabbitMQ, com suporte a auto-reconnect, graceful shutdown e consumo de mensagens.
+Hop é uma biblioteca Go simples e resiliente para conexão com RabbitMQ, com suporte a auto-reconnect, graceful shutdown, métricas Prometheus e consumo de mensagens.
 
 ## 🚀 Instalação
 
@@ -17,6 +17,7 @@ go get github.com/KevenMarioN/hop
 - [amqp091-go](https://github.com/rabbitmq/amqp091-go) - Cliente AMQP oficial
 - [zerolog](https://github.com/rs/zerolog) - Logging estruturado
 - [errgroup](https://golang.org/x/sync/errgroup) - Gerenciamento de goroutines
+- [prometheus/client_golang](https://github.com/prometheus/client_golang) - Métricas (opcional)
 
 ## 🔧 Uso Básico
 
@@ -156,6 +157,19 @@ type Client interface {
 	Shutdown(ctx context.Context) error
 	Close() error
 }
+```
+
+### Opções de Configuração
+
+```go
+import "github.com/KevenMarioN/hop/conn"
+
+// Configurações disponíveis:
+conn.WithConnectionName("my-app")          // Nome da conexão
+conn.WithBackoff(2, 100*time.Millisecond, 30*time.Second) // Backoff
+conn.WithTLS(tlsConfig)                   // TLS
+conn.WithServiceName("my-service")        // Nome do serviço
+conn.WithMetrics(prometheusRegistry)      // Métricas Prometheus
 ```
 
 ### Funções
@@ -299,6 +313,25 @@ Encerra conexões e goroutines de forma segura, garantindo que todas as mensagen
 ### Logging Estruturado
 
 Utiliza zerolog para logging estruturado e performático.
+
+### Métricas Prometheus
+
+Colete métricas de consumo, erros, reconexões e duração da conexão. Ative com `WithMetrics()`.
+
+### ConsumerBuilder
+
+API fluida para construção de consumers de forma type-safe e imutável:
+
+```go
+consumer, err := protocol.NewConsumerBuilder("my-consumer").
+    WithQueue(protocol.Queue{Name: "my-queue", Durable: true}).
+    WithExchange(&protocol.Exchange{Name: "my-exchange", Kind: protocol.Direct}).
+    WithHandler(func(ctx context.Context, msg amqp091.Delivery) error {
+        // Processa mensagem
+        return nil
+    }).
+    Build()
+```
 
 ## 🧪 Testes
 

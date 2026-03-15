@@ -8,6 +8,7 @@ import (
 	"github.com/KevenMarioN/hop/consumer"
 	"github.com/KevenMarioN/hop/protocol"
 	"github.com/KevenMarioN/hop/resilience"
+	"github.com/prometheus/client_golang/prometheus"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog/log"
 )
@@ -18,14 +19,21 @@ type hop struct {
 	consumerMgr    *consumer.Manager
 	backoffConfig  backoffConfig
 	config         amqp.Config
+	registry       prometheus.Registerer
 }
 
+// backoffConfig holds exponential backoff parameters for reconnection.
 type backoffConfig struct {
-	InitialDelay time.Duration
-	MaxDelay     time.Duration
-	Multiplier   float64
+	InitialDelay time.Duration // Starting delay before first retry
+	MaxDelay     time.Duration // Maximum delay between retries
+	Multiplier   float64       // Exponential multiplier (e.g., 2.0 doubles delay)
 }
 
+// Connect establishes a connection to RabbitMQ with automatic reconnection.
+// - ctx: Context for connection lifecycle (cancellation triggers shutdown)
+// - url: AMQP connection URL (e.g., amqp://user:pass@host:5672/)
+// - opts: Optional configuration (connection name, backoff, TLS, metrics)
+// Returns a Client implementation or error if initial connection fails.
 func Connect(ctx context.Context, url string, opts ...HopOption) (*hop, error) {
 	c := &hop{
 		conn:           nil,
@@ -52,8 +60,8 @@ func Connect(ctx context.Context, url string, opts ...HopOption) (*hop, error) {
 
 	log.Info().Msgf("Connected to RabbitMQ: %s", url)
 
-	// Create consumer manager
-	c.consumerMgr = consumer.NewManager(c.conn)
+	// Create consumer manager with metrics registry
+	c.consumerMgr = consumer.NewManager(c.conn, c.registry)
 
 	go c.monitorConnection(ctx, url)
 
@@ -99,14 +107,21 @@ func (h *hop) monitorConnection(ctx context.Context, url string) {
 	}
 }
 
+// Publish publishes a message to an exchange.
+// NOTE: Not implemented yet. Contributions welcome!
 func (c *hop) Publish(ctx context.Context, exchange, key string, body []byte) error {
 	return ErrNotImplemented
 }
 
+// Consume registers a consumer configuration.
+// The consumer will be started when StartConsumers is called.
 func (c *hop) Consume(args protocol.Consumer) error {
 	return c.consumerMgr.Register(&args)
 }
 
+// Close terminates the AMQP connection immediately.
+// It does not wait for consumers to finish processing.
+// Use Shutdown for graceful termination.
 func (c *hop) Close() error {
 	if err := c.conn.Close(); err != nil {
 		return fmt.Errorf("failed to close connection: %w", err)
@@ -115,6 +130,8 @@ func (c *hop) Close() error {
 	return nil
 }
 
+// Shutdown gracefully stops all consumers and closes the connection.
+// It waits for active message processing to complete (or context timeout).
 func (c *hop) Shutdown(ctx context.Context) error {
 	if err := c.consumerMgr.Wait(); err != nil {
 		return fmt.Errorf("failed to wait consumer manager: %w", err)
@@ -127,12 +144,16 @@ func (c *hop) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+// StartConsumers begins processing messages for all registered consumers.
+// This method spawns goroutines and returns immediately.
 func (c *hop) StartConsumers(ctx context.Context) {
 	if err := c.consumerMgr.Start(ctx); err != nil {
 		log.Error().Err(err).Msg("Failed to start consumers")
 	}
 }
 
+// Wait blocks until all consumers have finished processing.
+// Typically used after StartConsumers to wait for shutdown signal.
 func (c *hop) Wait() error {
 	return c.consumerMgr.Wait()
 }

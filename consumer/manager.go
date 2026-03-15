@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
+	"github.com/KevenMarioN/hop/metrics"
 	"github.com/KevenMarioN/hop/protocol"
+	"github.com/prometheus/client_golang/prometheus"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
@@ -18,20 +21,25 @@ type Manager struct {
 	mu        sync.RWMutex
 	wg        errgroup.Group
 	reconnect *sync.Cond
+	registry  prometheus.Registerer
+	startTime time.Time
 }
 
 // NewManager creates a new consumer manager
-func NewManager(conn *amqp.Connection) *Manager {
+func NewManager(conn *amqp.Connection, registry prometheus.Registerer) *Manager {
 	m := &Manager{
 		conn:      conn,
 		consumers: make(map[string]*protocol.Consumer),
 		reconnect: sync.NewCond(&sync.Mutex{}),
+		startTime: time.Now(),
+		registry:  registry,
 	}
 
 	return m
 }
 
-// Register adds a consumer to the manager
+// Register adds a consumer to the manager.
+// Returns error if consumer validation fails or if consumer with same name already exists.
 func (m *Manager) Register(consumer *protocol.Consumer) error {
 	if err := consumer.Validate(); err != nil {
 		return fmt.Errorf("consumer validation failed: %w", err)
@@ -48,20 +56,38 @@ func (m *Manager) Register(consumer *protocol.Consumer) error {
 
 	m.consumers[consumer.Name] = consumer
 
+	// Update active consumers metric
+	if m.registry != nil {
+		metrics.ActiveConsumers.Set(float64(len(m.consumers)))
+	}
+
 	return nil
 }
 
-// Start starts all registered consumers
+// Start starts all registered consumers and begins message processing.
+// This method spawns goroutines for each consumer and returns immediately.
+// Consumers will automatically recover from connection failures.
 func (m *Manager) Start(ctx context.Context) error {
 	m.mu.RLock()
-	defer m.mu.RUnlock()
 
+	consumers := make(map[string]*protocol.Consumer, len(m.consumers))
 	for name, consumer := range m.consumers {
+		consumers[name] = consumer
+	}
+
+	m.mu.RUnlock()
+
+	for name, consumer := range consumers {
 		if err := m.recreateConsumer(consumer); err != nil {
 			return fmt.Errorf("failed to start consumer %s: %w", name, err)
 		}
 
 		m.startConsumer(ctx, name, consumer)
+	}
+
+	// Update active consumers metric after starting
+	if m.registry != nil {
+		metrics.ActiveConsumers.Set(float64(len(m.consumers)))
 	}
 
 	return nil
@@ -99,7 +125,17 @@ func (m *Manager) startConsumer(ctx context.Context, name string, consumer *prot
 					log.Info().Msgf("Consumer %s reset successful", name)
 				} else {
 					if err := consumer.Execute(ctx, msg); err != nil {
+						// Record consumption error
+						if m.registry != nil {
+							metrics.ConsumptionErrors.WithLabelValues(consumer.Name, "handler_error").Inc()
+						}
+
 						return fmt.Errorf("failed to execute handler: %w", err)
+					}
+
+					// Record successful message consumption
+					if m.registry != nil {
+						metrics.MessagesConsumed.WithLabelValues(consumer.Name, consumer.Queue.Name).Inc()
 					}
 				}
 			}
@@ -111,6 +147,7 @@ func (m *Manager) startConsumer(ctx context.Context, name string, consumer *prot
 func (m *Manager) recreateConsumer(consumer *protocol.Consumer) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
 	channel, err := m.conn.Channel()
 	if err != nil {
 		return fmt.Errorf("failed to create channel: %w", err)
@@ -200,7 +237,9 @@ func (m *Manager) declareTopology(channel *amqp.Channel, consumer *protocol.Cons
 	return nil
 }
 
-// Wait waits for all consumers to finish
+// Wait waits for all consumers to finish processing.
+// It blocks until all consumer goroutines complete or context is cancelled.
+// Returns error if no consumers are registered or if any consumer fails.
 func (m *Manager) Wait() error {
 	if len(m.consumers) == 0 {
 		return fmt.Errorf("no consumers registered")
@@ -210,11 +249,24 @@ func (m *Manager) Wait() error {
 		return fmt.Errorf("failed to wait for consumer group: %w", err)
 	}
 
+	// Update connection duration metric
+	if m.registry != nil {
+		duration := time.Since(m.startTime).Seconds()
+		metrics.ConnectionDuration.Set(duration)
+	}
+
 	return nil
 }
 
-// NotifyReconnected notifies consumers that the connection has been reestablished
+// NotifyReconnected notifies consumers that the connection has been reestablished.
+// This method is called internally by the connection monitor after a successful reconnection.
+// It triggers all waiting consumers to recreate their channels and resume processing.
 func (m *Manager) NotifyReconnected(conn *amqp.Connection) {
 	m.conn = conn
 	m.reconnect.Broadcast()
+
+	// Increment reconnects metric
+	if m.registry != nil {
+		metrics.Reconnects.Inc()
+	}
 }

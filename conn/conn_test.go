@@ -13,7 +13,7 @@ import (
 
 // TestWaitWithoutConsumers tests wait without consumers
 func TestWaitWithoutConsumers(t *testing.T) {
-	mgr := consumer.NewManager(&amqp.Connection{})
+	mgr := consumer.NewManager(&amqp.Connection{}, nil)
 	hop := &hop{
 		consumerMgr: mgr,
 	}
@@ -46,7 +46,7 @@ func TestPublishNotImplemented(t *testing.T) {
 func TestConsumeWithValidationError(t *testing.T) {
 	hop := &hop{
 		conn:        &amqp.Connection{},
-		consumerMgr: consumer.NewManager(&amqp.Connection{}),
+		consumerMgr: consumer.NewManager(&amqp.Connection{}, nil),
 	}
 
 	// Consumer com nome vazio
@@ -71,7 +71,7 @@ func TestConsumeWithValidationError(t *testing.T) {
 func TestConsumeWithNullHandler(t *testing.T) {
 	hop := &hop{
 		conn:        &amqp.Connection{},
-		consumerMgr: consumer.NewManager(&amqp.Connection{}),
+		consumerMgr: consumer.NewManager(&amqp.Connection{}, nil),
 	}
 
 	// Consumer com handler nulo
