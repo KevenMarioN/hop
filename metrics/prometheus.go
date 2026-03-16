@@ -10,16 +10,18 @@ import (
 type PrometheusCollector struct {
 	registry prometheus.Registerer
 	// Cache de métricas para evitar lookup repetido
-	counters map[string]prometheus.Counter
-	gauges   map[string]prometheus.Gauge
+	counters      map[string]prometheus.Counter
+	gauges        map[string]prometheus.Gauge
+	histogramVecs map[string]*prometheus.HistogramVec
 }
 
 // NewPrometheusCollector cria um novo collector Prometheus.
 func NewPrometheusCollector(registry prometheus.Registerer) *PrometheusCollector {
 	p := &PrometheusCollector{
-		registry: registry,
-		counters: make(map[string]prometheus.Counter),
-		gauges:   make(map[string]prometheus.Gauge),
+		registry:      registry,
+		counters:      make(map[string]prometheus.Counter),
+		gauges:        make(map[string]prometheus.Gauge),
+		histogramVecs: make(map[string]*prometheus.HistogramVec),
 	}
 	// Registrar métricas padrão do Hop
 	p.registerDefaultMetrics()
@@ -57,6 +59,24 @@ func (p *PrometheusCollector) Gauge(name string, labels ...string) Gauge {
 	return &prometheusGauge{g}
 }
 
+func (p *PrometheusCollector) Histogram(name string, labels ...string) Histogram {
+	key := name + "|" + strings.Join(labels, "|")
+	if vec, ok := p.histogramVecs[key]; ok {
+		return &prometheusHistogram{vec.WithLabelValues(labels...)}
+	}
+	vec := prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    name,
+			Help:    name,
+			Buckets: prometheus.DefBuckets,
+		},
+		labels,
+	)
+	p.registry.MustRegister(vec)
+	p.histogramVecs[key] = vec
+	return &prometheusHistogram{vec.WithLabelValues(labels...)}
+}
+
 func (p *PrometheusCollector) Registerer() any {
 	return p.registry
 }
@@ -73,6 +93,10 @@ func (pg *prometheusGauge) Set(v float64) { pg.g.Set(v) }
 func (pg *prometheusGauge) Inc()          { pg.g.Inc() }
 func (pg *prometheusGauge) Dec()          { pg.g.Dec() }
 func (pg *prometheusGauge) Add(v float64) { pg.g.Add(v) }
+
+type prometheusHistogram struct{ h prometheus.Observer }
+
+func (ph *prometheusHistogram) Observe(value float64) { ph.h.Observe(value) }
 
 // Métricas padrão do Hop
 func (p *PrometheusCollector) registerDefaultMetrics() {
@@ -127,4 +151,16 @@ func (p *PrometheusCollector) registerDefaultMetrics() {
 	)
 	p.registry.MustRegister(activeConsumers)
 	p.gauges["hop_active_consumers|"] = activeConsumers
+
+	// MessageProcessingDuration: histogram com labels consumer, queue
+	messageProcessingDuration := prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "hop_message_processing_duration_seconds",
+			Help:    "Duration of message processing in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"consumer", "queue"},
+	)
+	p.registry.MustRegister(messageProcessingDuration)
+	p.histogramVecs["hop_message_processing_duration_seconds|consumer|queue"] = messageProcessingDuration
 }

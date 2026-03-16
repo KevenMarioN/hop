@@ -407,6 +407,7 @@ hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
 - `hop_reconnects_total` (Counter): Total reconnections
 - `hop_connection_duration_seconds` (Gauge): Current connection duration
 - `hop_active_consumers` (Gauge): Number of active consumers
+- `hop_message_processing_duration_seconds` (Histogram): Message processing duration
 
 ### ConsumerBuilder
 

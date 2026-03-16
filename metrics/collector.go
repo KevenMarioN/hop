@@ -7,6 +7,8 @@ type MetricsCollector interface {
 	Counter(name string, labels ...string) Counter
 	// Gauge retorna uma métrica do tipo Gauge com as labels fornecidas.
 	Gauge(name string, labels ...string) Gauge
+	// Histogram retorna uma métrica do tipo Histogram com as labels fornecidas.
+	Histogram(name string, labels ...string) Histogram
 	// Registerer retorna o registerer subjacente para registro de métricas.
 	// Pode ser nil se o collector não suportar registro explícito.
 	Registerer() any
@@ -24,4 +26,9 @@ type Gauge interface {
 	Inc()
 	Dec()
 	Add(float64)
+}
+
+// Histogram representa uma métrica histograma para medir distribuição de valores.
+type Histogram interface {
+	Observe(value float64)
 }

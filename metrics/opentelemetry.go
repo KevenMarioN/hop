@@ -16,6 +16,7 @@ type OpenTelemetryCollector struct {
 	gauges      map[string]metric.Int64ObservableGauge
 	gaugeValues map[string]int64
 	gaugeMutex  sync.RWMutex
+	histograms  map[string]metric.Float64Histogram
 }
 
 // NewOpenTelemetryCollector cria um novo collector OpenTelemetry.
@@ -27,6 +28,7 @@ func NewOpenTelemetryCollector(meterName string) *OpenTelemetryCollector {
 		counters:    make(map[string]metric.Int64Counter),
 		gauges:      make(map[string]metric.Int64ObservableGauge),
 		gaugeValues: make(map[string]int64),
+		histograms:  make(map[string]metric.Float64Histogram),
 	}
 
 	// Registrar métricas padrão do Hop
@@ -84,6 +86,27 @@ func (oc *OpenTelemetryCollector) Gauge(name string, labels ...string) Gauge {
 
 	oc.gauges[key] = gauge
 	return &otelGauge{gauge: gauge, collector: oc, key: key, labels: labels}
+}
+
+func (oc *OpenTelemetryCollector) Histogram(name string, labels ...string) Histogram {
+	key := name + "|" + strings.Join(labels, "|")
+
+	if h, ok := oc.histograms[key]; ok {
+		return &otelHistogram{histogram: h}
+	}
+
+	// Criar novo histogram
+	histogram, err := oc.meter.Float64Histogram(
+		name,
+		metric.WithDescription(name),
+	)
+	if err != nil {
+		// Em caso de erro, retornar histogram no-op
+		return &otelHistogram{}
+	}
+
+	oc.histograms[key] = histogram
+	return &otelHistogram{histogram: histogram}
 }
 
 func (oc *OpenTelemetryCollector) Registerer() any {
@@ -147,6 +170,16 @@ func (og *otelGauge) Add(v float64) {
 	}
 }
 
+type otelHistogram struct {
+	histogram metric.Float64Histogram
+}
+
+func (oh *otelHistogram) Observe(value float64) {
+	if oh.histogram != nil {
+		oh.histogram.Record(context.Background(), value)
+	}
+}
+
 // Métricas padrão do Hop
 func (oc *OpenTelemetryCollector) registerDefaultMetrics() {
 	// MessagesConsumed: counter com labels consumer, queue
@@ -163,4 +196,7 @@ func (oc *OpenTelemetryCollector) registerDefaultMetrics() {
 
 	// ActiveConsumers: gauge sem labels
 	oc.Gauge("hop_active_consumers")
+
+	// MessageProcessingDuration: histogram com labels consumer, queue
+	oc.Histogram("hop_message_processing_duration_seconds", "consumer", "queue")
 }

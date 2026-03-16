@@ -26,6 +26,14 @@ func (mc *MultiCollector) Gauge(name string, labels ...string) Gauge {
 	}
 }
 
+func (mc *MultiCollector) Histogram(name string, labels ...string) Histogram {
+	return &multiHistogram{
+		collectors: mc.collectors,
+		name:       name,
+		labels:     labels,
+	}
+}
+
 func (mc *MultiCollector) Registerer() any {
 	// Retorna o primeiro registerer disponível (para compatibilidade)
 	for _, c := range mc.collectors {
@@ -81,5 +89,17 @@ func (mg *multiGauge) Dec() {
 func (mg *multiGauge) Add(v float64) {
 	for _, c := range mg.collectors {
 		c.Gauge(mg.name, mg.labels...).Add(v)
+	}
+}
+
+type multiHistogram struct {
+	collectors []MetricsCollector
+	name       string
+	labels     []string
+}
+
+func (mh *multiHistogram) Observe(value float64) {
+	for _, c := range mh.collectors {
+		c.Histogram(mh.name, mh.labels...).Observe(value)
 	}
 }

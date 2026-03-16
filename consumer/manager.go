@@ -108,7 +108,7 @@ func (m *Manager) startConsumer(ctx context.Context, name string, consumer *prot
 					// Check context again after waiting
 					select {
 					case <-ctx.Done():
-						return ctx.Err()
+						return fmt.Errorf("consumer context done when await reconnect: %w", ctx.Err())
 					default:
 					}
 
@@ -118,23 +118,30 @@ func (m *Manager) startConsumer(ctx context.Context, name string, consumer *prot
 
 					log.Info().Msgf("Consumer %s reset successful", name)
 				} else {
+					// Measure processing latency
+					startTime := time.Now()
+
 					if err := consumer.Execute(ctx, protocol.NewMessage(msg)); err != nil {
+						log.Warn().Err(err).Msgf("Consumer %s: handler execution failed, closing channel", name)
+
+						if err := consumer.Close(); err != nil {
+							log.Warn().Err(err).Msgf("Consumer %s: closing channel", name)
+							return err
+						}
 						// Record consumption error
 						if m.collector != nil {
 							m.collector.Counter("hop_consumption_errors_total", consumer.Name, "handler_error").Inc()
 						}
-
-						log.Warn().Err(err).Msgf("Consumer %s: handler execution failed, closing channel", name)
-
-						if err := consumer.Close(); err != nil {
-							return err
-						}
-
 						return fmt.Errorf("failed to execute handler: %w", err)
 					}
 
-					// Record successful message consumption
 					if m.collector != nil {
+						// Record processing latency
+						duration := time.Since(startTime).Seconds()
+						m.collector.Histogram("hop_message_processing_duration_seconds",
+							consumer.Name, consumer.Queue.Name).Observe(duration)
+
+						// Record successful message consumption
 						m.collector.Counter("hop_messages_consumed_total", consumer.Name, consumer.Queue.Name).Inc()
 					}
 				}
@@ -153,14 +160,6 @@ func (m *Manager) recreateConsumer(consumer *protocol.Consumer) error {
 		return fmt.Errorf("failed to create channel: %w", err)
 	}
 	consumer.Channel(channel)
-
-	defer func() {
-		if err != nil {
-			if closeErr := channel.Close(); closeErr != nil {
-				log.Error().Err(closeErr).Msg("failed to close channel")
-			}
-		}
-	}()
 
 	// Always declare topology to ensure it exists
 	if err := m.declareTopology(channel, consumer); err != nil {

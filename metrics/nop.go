@@ -12,6 +12,10 @@ func (ng *nopGauge) Inc()          {}
 func (ng *nopGauge) Dec()          {}
 func (ng *nopGauge) Add(v float64) {}
 
+type nopHistogram struct{}
+
+func (nh *nopHistogram) Observe(value float64) {}
+
 // NopCollector é um collector que não faz nada.
 // Útil quando métricas estão desabilitadas.
 var NopCollector = &nopCollector{}
@@ -24,6 +28,10 @@ func (nc *nopCollector) Counter(name string, labels ...string) Counter {
 
 func (nc *nopCollector) Gauge(name string, labels ...string) Gauge {
 	return &nopGauge{}
+}
+
+func (nc *nopCollector) Histogram(name string, labels ...string) Histogram {
+	return &nopHistogram{}
 }
 
 func (nc *nopCollector) Registerer() any {
