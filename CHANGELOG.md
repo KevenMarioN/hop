@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **OpenTelemetry Metrics Integration**: Added OpenTelemetry collector for modern observability stacks
 - **ConsumerBuilder**: New fluent API for building immutable Consumer configurations via `protocol.NewConsumerBuilder()`
 - **Improved Documentation**: Added comprehensive go doc comments to all public types and functions
+  - Documented `protocol.Message` struct with embedded fields from amqp.Delivery
+  - Documented `protocol.Handler` function signature
+  - Documented `Consumer.Execute()` method with usage notes
 - **HTTP Metrics Endpoint**: New `metrics.Handler()` for exposing Prometheus metrics
 - **Backward Compatibility**: Added `WithPrometheusMetrics()` convenience wrapper for existing code
 

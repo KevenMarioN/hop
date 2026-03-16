@@ -6,8 +6,8 @@ import (
 
 	"github.com/KevenMarioN/hop"
 	"github.com/KevenMarioN/hop/conn"
+	"github.com/KevenMarioN/hop/metrics"
 	"github.com/KevenMarioN/hop/protocol"
-	"github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog/log"
 )
 
@@ -15,7 +15,8 @@ func main() {
 	ctx := context.Background()
 
 	hop, err := hop.New(ctx, "amqp://admin:admin@localhost:5672/",
-		conn.WithBackoff(2, time.Second*1, time.Minute*1))
+		conn.WithBackoff(2, time.Second*1, time.Minute*1),
+		conn.WithMetrics(metrics.NewOpenTelemetryCollector("hop")))
 	if err != nil {
 		log.Error().Err(err).Msg("failed start connection hop")
 		return
@@ -33,9 +34,9 @@ func main() {
 			NoWait:            false,
 			ShouldCreateQueue: true,
 		},
-		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
+		Exec: func(ctx context.Context, msg protocol.Message) error {
 			defer func() {
-				if err := msg.Ack(true); err != nil {
+				if err := msg.Success(); err != nil {
 					log.Error().Err(err).Msg("Failed to confirm message")
 				}
 			}()
@@ -62,13 +63,14 @@ func main() {
 		},
 		Key: "transferencia",
 		Exchange: &protocol.Exchange{
-			Durable: true,
-			Kind:    protocol.Direct,
-			Name:    "banco",
+			Durable:              true,
+			Kind:                 protocol.Direct,
+			Name:                 "banco",
+			ShouldCreateExchange: true,
 		},
-		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
+		Exec: func(ctx context.Context, msg protocol.Message) error {
 			defer func() {
-				if err := msg.Ack(true); err != nil {
+				if err := msg.Success(); err != nil {
 					log.Error().Err(err).Msg("Failed to confirm message")
 				}
 			}()

@@ -13,7 +13,7 @@ import (
 func TestConsumerValidateWithEmptyName(t *testing.T) {
 	consumer := Consumer{
 		Name: "",
-		Exec: func(ctx context.Context, msg amqp.Delivery) error {
+		Exec: func(ctx context.Context, msg Message) error {
 			return nil
 		},
 	}
@@ -49,7 +49,7 @@ func TestConsumerValidateWithNullHandler(t *testing.T) {
 func TestConsumerValidateWithValidData(t *testing.T) {
 	consumer := Consumer{
 		Name: "test-consumer",
-		Exec: func(ctx context.Context, msg amqp.Delivery) error {
+		Exec: func(ctx context.Context, msg Message) error {
 			return nil
 		},
 	}
@@ -86,7 +86,7 @@ func TestConsumerListen(t *testing.T) {
 func TestConsumerHandler(t *testing.T) {
 	consumer := Consumer{}
 	handlerCalled := false
-	handler := func(ctx context.Context, msg amqp.Delivery) error {
+	handler := func(ctx context.Context, msg Message) error {
 		handlerCalled = true
 		return nil
 	}
@@ -98,7 +98,7 @@ func TestConsumerHandler(t *testing.T) {
 	}
 
 	// Testa se o handler foi configurado corretamente
-	err := consumer.Exec(context.Background(), amqp.Delivery{})
+	err := consumer.Exec(context.Background(), Message{})
 	if err != nil {
 		t.Errorf("Handler retornou erro inesperado: %v", err)
 	}
@@ -112,13 +112,13 @@ func TestConsumerHandler(t *testing.T) {
 func TestConsumerExecute(t *testing.T) {
 	handlerCalled := false
 	consumer := Consumer{
-		Exec: func(ctx context.Context, msg amqp.Delivery) error {
+		Exec: func(ctx context.Context, msg Message) error {
 			handlerCalled = true
 			return nil
 		},
 	}
 
-	err := consumer.Execute(context.Background(), amqp.Delivery{})
+	err := consumer.Execute(context.Background(), Message{})
 	if err != nil {
 		t.Errorf("Execute retornou erro inesperado: %v", err)
 	}
@@ -132,12 +132,12 @@ func TestConsumerExecute(t *testing.T) {
 func TestConsumerExecuteWithError(t *testing.T) {
 	expectedErr := errors.New("handler error")
 	consumer := Consumer{
-		Exec: func(ctx context.Context, msg amqp.Delivery) error {
+		Exec: func(ctx context.Context, msg Message) error {
 			return expectedErr
 		},
 	}
 
-	err := consumer.Execute(context.Background(), amqp.Delivery{})
+	err := consumer.Execute(context.Background(), Message{})
 	if err == nil {
 		t.Error("Esperado erro do handler, mas obteve nil")
 	}

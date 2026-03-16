@@ -12,7 +12,6 @@ import (
 	"github.com/KevenMarioN/hop"
 	"github.com/KevenMarioN/hop/conn"
 	"github.com/KevenMarioN/hop/protocol"
-	"github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
@@ -47,7 +46,7 @@ func main() {
 			Name:    "orders",
 			Durable: true,
 		},
-		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
+		Exec: func(ctx context.Context, msg protocol.Message) error {
 			defer func() {
 				if err := msg.Ack(true); err != nil {
 					fmt.Print(err)
@@ -74,7 +73,7 @@ func main() {
 			Name:    "notifications",
 			Durable: true,
 		},
-		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
+		Exec: func(ctx context.Context, msg protocol.Message) error {
 			defer func() {
 				if err := msg.Ack(true); err != nil {
 					fmt.Print(err)
@@ -101,7 +100,7 @@ func main() {
 			Name:    "logs",
 			Durable: false, // Non-durable queue for logs
 		},
-		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
+		Exec: func(ctx context.Context, msg protocol.Message) error {
 			fmt.Printf("[Log] %s\n", string(msg.Body))
 			return nil
 		},

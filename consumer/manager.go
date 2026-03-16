@@ -55,11 +55,6 @@ func (m *Manager) Register(consumer *protocol.Consumer) error {
 
 	m.consumers[consumer.Name] = consumer
 
-	// Update active consumers metric
-	if m.collector != nil {
-		m.collector.Gauge("hop_active_consumers").Set(float64(len(m.consumers)))
-	}
-
 	return nil
 }
 
@@ -123,7 +118,7 @@ func (m *Manager) startConsumer(ctx context.Context, name string, consumer *prot
 
 					log.Info().Msgf("Consumer %s reset successful", name)
 				} else {
-					if err := consumer.Execute(ctx, msg); err != nil {
+					if err := consumer.Execute(ctx, protocol.NewMessage(msg)); err != nil {
 						// Record consumption error
 						if m.collector != nil {
 							m.collector.Counter("hop_consumption_errors_total", consumer.Name, "handler_error").Inc()
@@ -188,31 +183,34 @@ func (m *Manager) recreateConsumer(consumer *protocol.Consumer) error {
 // declareTopology declares queue, exchange and bindings
 func (m *Manager) declareTopology(channel *amqp.Channel, consumer *protocol.Consumer) error {
 	// Declare queue
-	_, err := channel.QueueDeclare(
-		consumer.Queue.Name,
-		consumer.Queue.Durable,
-		consumer.Queue.AutoDelete,
-		consumer.Queue.Exclusive,
-		consumer.Queue.NoWait,
-		consumer.Queue.Headers,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to declare queue %s: %w", consumer.Queue.Name, err)
+	if consumer.Queue.ShouldCreateQueue {
+		_, err := channel.QueueDeclare(
+			consumer.Queue.Name,
+			consumer.Queue.Durable,
+			consumer.Queue.AutoDelete,
+			consumer.Queue.Exclusive,
+			consumer.Queue.NoWait,
+			consumer.Queue.Headers,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to declare queue %s: %w", consumer.Queue.Name, err)
+		}
 	}
 
 	// Declare exchange and bind if configured
 	if consumer.Exchange != nil {
-		err := channel.ExchangeDeclare(
-			consumer.Exchange.Name,
-			string(consumer.Exchange.Kind),
-			consumer.Exchange.Durable,
-			consumer.Exchange.AutoDelete,
-			consumer.Exchange.Internal,
-			consumer.Exchange.NoWait,
-			consumer.Exchange.Headers,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to declare exchange %s: %w", consumer.Exchange.Name, err)
+		if consumer.Exchange.ShouldCreateExchange {
+			if err := channel.ExchangeDeclare(
+				consumer.Exchange.Name,
+				string(consumer.Exchange.Kind),
+				consumer.Exchange.Durable,
+				consumer.Exchange.AutoDelete,
+				consumer.Exchange.Internal,
+				consumer.Exchange.NoWait,
+				consumer.Exchange.Headers,
+			); err != nil {
+				return fmt.Errorf("failed to declare exchange %s: %w", consumer.Exchange.Name, err)
+			}
 		}
 
 		// Determine binding key
@@ -221,14 +219,13 @@ func (m *Manager) declareTopology(channel *amqp.Channel, consumer *protocol.Cons
 			key = consumer.Queue.Name
 		}
 
-		err = channel.QueueBind(
+		if err := channel.QueueBind(
 			consumer.Queue.Name,
 			key,
 			consumer.Exchange.Name,
 			consumer.Exchange.NoWait,
 			consumer.Headers,
-		)
-		if err != nil {
+		); err != nil {
 			return fmt.Errorf("failed to bind queue %s to exchange %s: %w", consumer.Queue.Name, consumer.Exchange.Name, err)
 		}
 	}

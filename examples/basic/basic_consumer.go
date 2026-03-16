@@ -7,7 +7,6 @@ import (
 
 	"github.com/KevenMarioN/hop"
 	"github.com/KevenMarioN/hop/protocol"
-	"github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
@@ -33,7 +32,7 @@ func main() {
 			Name:    "my-queue",
 			Durable: true,
 		},
-		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
+		Exec: func(ctx context.Context, msg protocol.Message) error {
 			defer func() {
 				if err := msg.Ack(true); err != nil {
 					fmt.Print(err)

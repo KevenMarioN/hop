@@ -52,7 +52,7 @@ func TestConsumeWithValidationError(t *testing.T) {
 	// Consumer com nome vazio
 	consumer := protocol.Consumer{
 		Name: "",
-		Exec: func(ctx context.Context, msg amqp.Delivery) error {
+		Exec: func(ctx context.Context, msg protocol.Message) error {
 			return nil
 		},
 	}

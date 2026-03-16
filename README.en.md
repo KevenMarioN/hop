@@ -298,12 +298,32 @@ type Exchange struct {
 }
 ```
 
+#### `protocol.Message`
+
+Wrapper for amqp.Delivery that allows future message format extensions.
+
+```go
+type Message struct {
+    amqp091.Delivery
+}
+```
+
+Key embedded fields:
+- `Body`: []byte with message payload
+- `Headers`: map[string]interface{} with message headers
+- `ContentType`: string describing message format
+- `DeliveryTag`: uint64 delivery identifier
+- `Exchange`: string name of originating exchange
+- `RoutingKey`: string routing key used for delivery
+- `ConsumerTag`: string consumer identifier
+- `MessageCount`: uint32 number of messages remaining in queue
+
 #### `protocol.Handler`
 
 Message processing function.
 
 ```go
-type Handler func(ctx context.Context, msg amqp091.Delivery) error
+type Handler func(ctx context.Context, msg Message) error
 ```
 
 #### `protocol.Kind`
