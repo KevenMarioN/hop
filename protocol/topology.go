@@ -92,6 +92,7 @@ type Consumer struct {
 	Exchange *Exchange
 	msg      <-chan amqp.Delivery
 	Exec     Handler // Public field for handler function (required)
+	channel  *amqp.Channel
 }
 
 // Message wraps amqp.Delivery to provide a cleaner interface for message handling.
@@ -126,6 +127,17 @@ func (c Consumer) Validate() error {
 
 func (c *Consumer) Msg(msg <-chan amqp.Delivery) {
 	c.msg = msg
+}
+
+func (c *Consumer) Channel(channel *amqp.Channel) {
+	c.channel = channel
+}
+
+func (c *Consumer) Close() error {
+	if err := c.channel.Close(); err != nil {
+		return fmt.Errorf("failed close channel to consumer %s", c.Name)
+	}
+	return nil
 }
 
 func (c *Consumer) Listen() <-chan amqp.Delivery {

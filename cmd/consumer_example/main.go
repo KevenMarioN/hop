@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/KevenMarioN/hop"
@@ -76,6 +77,10 @@ func main() {
 			}()
 
 			log.Info().Str("consumer", "example").Msg(string(msg.Body))
+
+			if string(msg.Body) == `{"msg": "failed"}` {
+				return errors.New("failed")
+			}
 
 			return nil
 		},
