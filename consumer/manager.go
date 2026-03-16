@@ -124,6 +124,12 @@ func (m *Manager) startConsumer(ctx context.Context, name string, consumer *prot
 							m.collector.Counter("hop_consumption_errors_total", consumer.Name, "handler_error").Inc()
 						}
 
+						log.Warn().Err(err).Msgf("Consumer %s: handler execution failed, closing channel", name)
+
+						if err := consumer.Close(); err != nil {
+							return err
+						}
+
 						return fmt.Errorf("failed to execute handler: %w", err)
 					}
 
@@ -146,6 +152,7 @@ func (m *Manager) recreateConsumer(consumer *protocol.Consumer) error {
 	if err != nil {
 		return fmt.Errorf("failed to create channel: %w", err)
 	}
+	consumer.Channel(channel)
 
 	defer func() {
 		if err != nil {
