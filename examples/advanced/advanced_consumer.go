@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/KevenMarioN/hop"
-	"github.com/KevenMarioN/hop/internal/conn"
 )
 
 func main() {
@@ -24,7 +23,7 @@ func main() {
 
 	// Create connection with RabbitMQ with custom configuration
 	hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
-		conn.WithConnectionName("meu-app-advanced"),
+		hop.WithConnectionName("meu-app-advanced"),
 	)
 	if err != nil {
 		fmt.Printf("Failed to create connection: %v", err)

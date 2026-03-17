@@ -6,9 +6,6 @@ import (
 	"time"
 
 	"github.com/KevenMarioN/hop"
-	"github.com/KevenMarioN/hop/internal/conn"
-	"github.com/KevenMarioN/hop/internal/metrics"
-	"github.com/KevenMarioN/hop/internal/protocol"
 	"github.com/rs/zerolog/log"
 )
 
@@ -16,8 +13,8 @@ func main() {
 	ctx := context.Background()
 
 	clientHop, err := hop.New(ctx, "amqp://admin:admin@localhost:5672/",
-		conn.WithBackoff(2, time.Second*1, time.Minute*1),
-		conn.WithMetrics(metrics.NewOpenTelemetryCollector("hop")))
+		hop.WithBackoff(2, time.Second*1, time.Minute*1),
+		hop.WithMetrics(hop.NewOpenTelemetryCollector("hop")))
 	if err != nil {
 		log.Error().Err(err).Msg("failed start connection hop")
 		return
@@ -29,7 +26,7 @@ func main() {
 		NoLocal:   false,
 		Exclusive: false,
 		NoWait:    false,
-		Queue: protocol.Queue{
+		Queue: hop.Queue{
 			Durable:           true,
 			Name:              "example.queue",
 			NoWait:            false,

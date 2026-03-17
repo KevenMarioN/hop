@@ -8,6 +8,27 @@ import (
 	"context"
 
 	"github.com/KevenMarioN/hop/internal/conn"
+	"github.com/KevenMarioN/hop/internal/protocol"
+)
+
+type Queue = protocol.Queue
+
+type Message = protocol.Message
+
+type Consumer = protocol.Consumer
+
+type Handler = protocol.Handler
+
+type Exchange = protocol.Exchange
+
+type Kind = protocol.Kind
+
+// Supported exchange types.
+const (
+	Fanout  Kind = "fanout" // Fanout exchange broadcasts to all bound queues
+	Topic   Kind = "topic"  // Topic exchange routes based on pattern matching
+	Direct  Kind = "direct" // Direct exchange routes by exact routing key
+	Default Kind = ""       // Default exchange (amq.direct)
 )
 
 // Client is the main interface for interacting with RabbitMQ.
@@ -38,6 +59,6 @@ type Client interface {
 // - url: AMQP connection URL (e.g., amqp://user:pass@host:5672/)
 // - opts: Optional configuration (connection name, backoff, TLS, metrics)
 // Returns a Client implementation or error if connection fails.
-func New(ctx context.Context, url string, opts ...conn.HopOption) (Client, error) {
+func New(ctx context.Context, url string, opts ...HopOption) (Client, error) {
 	return conn.Connect(ctx, url, opts...)
 }
