@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"time"
 
-	"github.com/KevenMarioN/hop/metrics"
+	"github.com/KevenMarioN/hop/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

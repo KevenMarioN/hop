@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/KevenMarioN/hop"
-	"github.com/KevenMarioN/hop/protocol"
 )
 
 func main() {
@@ -25,14 +24,14 @@ func main() {
 	}()
 
 	// Register consumer
-	err = hopClient.Consume(protocol.Consumer{
+	err = hopClient.Consume(hop.Consumer{
 		Name:    "my-consumer",
 		AutoAck: false,
-		Queue: protocol.Queue{
+		Queue: hop.Queue{
 			Name:    "my-queue",
 			Durable: true,
 		},
-		Exec: func(ctx context.Context, msg protocol.Message) error {
+		Exec: func(ctx context.Context, msg hop.Message) error {
 			defer func() {
 				if err := msg.Ack(true); err != nil {
 					fmt.Print(err)

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/KevenMarioN/hop/consumer"
-	"github.com/KevenMarioN/hop/protocol"
+	"github.com/KevenMarioN/hop/internal/consumer"
+	"github.com/KevenMarioN/hop/internal/protocol"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 

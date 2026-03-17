@@ -7,8 +7,7 @@ package hop
 import (
 	"context"
 
-	"github.com/KevenMarioN/hop/conn"
-	"github.com/KevenMarioN/hop/protocol"
+	"github.com/KevenMarioN/hop/internal/conn"
 )
 
 // Client is the main interface for interacting with RabbitMQ.
@@ -19,7 +18,7 @@ type Client interface {
 
 	// Consume registers a consumer configuration.
 	// The consumer will start processing when StartConsumers is called.
-	Consume(args protocol.Consumer) error
+	Consume(args Consumer) error
 
 	// StartConsumers begins message processing for all registered consumers.
 	// This spawns goroutines and returns immediately.

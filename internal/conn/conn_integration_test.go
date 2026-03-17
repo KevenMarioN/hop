@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/KevenMarioN/hop/metrics"
-	"github.com/KevenMarioN/hop/protocol"
+	"github.com/KevenMarioN/hop/internal/metrics"
+	"github.com/KevenMarioN/hop/internal/protocol"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 

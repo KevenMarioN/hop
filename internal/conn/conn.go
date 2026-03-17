@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/KevenMarioN/hop/consumer"
-	"github.com/KevenMarioN/hop/metrics"
-	"github.com/KevenMarioN/hop/protocol"
-	"github.com/KevenMarioN/hop/resilience"
+	"github.com/KevenMarioN/hop/internal/consumer"
+	"github.com/KevenMarioN/hop/internal/metrics"
+	"github.com/KevenMarioN/hop/internal/protocol"
+	"github.com/KevenMarioN/hop/internal/resilience"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/zerolog/log"
 )
