@@ -81,6 +81,7 @@ func TestIntegrationPublishAndConsume(t *testing.T) {
 
 	// Publicar mensagem
 	testMessage := []byte("Mensagem de teste de integração")
+
 	err = channel.Publish(
 		exchangeName,
 		"test_key",
@@ -116,6 +117,7 @@ func TestIntegrationPublishAndConsume(t *testing.T) {
 			t.Errorf("Mensagem recebida diferente da enviada. Esperado: %s, Recebido: %s",
 				string(testMessage), string(msg.Body))
 		}
+
 		msg.Ack(false)
 	case <-time.After(5 * time.Second):
 		t.Fatal("Timeout esperando mensagem")
@@ -165,6 +167,7 @@ func TestIntegrationConsumerManager(t *testing.T) {
 
 	// Criar consumer de teste usando ConsumerBuilder
 	testQueue := "test_manager_queue"
+
 	testConsumer, err := protocol.NewConsumerBuilder("test_manager_consumer").
 		WithQueue(protocol.Queue{
 			Name:              testQueue,
@@ -216,6 +219,7 @@ func TestIntegrationConsumerManager(t *testing.T) {
 	}
 
 	testMessage := []byte("Mensagem para manager")
+
 	err = channel.Publish(
 		"",
 		testQueue,

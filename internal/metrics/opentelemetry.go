@@ -55,6 +55,7 @@ func (oc *OpenTelemetryCollector) Counter(name string, labels ...string) Counter
 	}
 
 	oc.counters[key] = counter
+
 	return &otelCounter{counter: counter, labels: labels}
 }
 
@@ -76,6 +77,7 @@ func (oc *OpenTelemetryCollector) Gauge(name string, labels ...string) Gauge {
 			if val, ok := oc.gaugeValues[key]; ok {
 				o.Observe(val)
 			}
+
 			return nil
 		}),
 	)
@@ -85,6 +87,7 @@ func (oc *OpenTelemetryCollector) Gauge(name string, labels ...string) Gauge {
 	}
 
 	oc.gauges[key] = gauge
+
 	return &otelGauge{gauge: gauge, collector: oc, key: key, labels: labels}
 }
 
@@ -106,6 +109,7 @@ func (oc *OpenTelemetryCollector) Histogram(name string, labels ...string) Histo
 	}
 
 	oc.histograms[key] = histogram
+
 	return &otelHistogram{histogram: histogram}
 }
 
@@ -142,6 +146,7 @@ func (og *otelGauge) Set(v float64) {
 	if og.collector != nil {
 		og.collector.gaugeMutex.Lock()
 		defer og.collector.gaugeMutex.Unlock()
+
 		og.collector.gaugeValues[og.key] = int64(v)
 	}
 }
@@ -150,6 +155,7 @@ func (og *otelGauge) Inc() {
 	if og.collector != nil {
 		og.collector.gaugeMutex.Lock()
 		defer og.collector.gaugeMutex.Unlock()
+
 		og.collector.gaugeValues[og.key]++
 	}
 }
@@ -158,6 +164,7 @@ func (og *otelGauge) Dec() {
 	if og.collector != nil {
 		og.collector.gaugeMutex.Lock()
 		defer og.collector.gaugeMutex.Unlock()
+
 		og.collector.gaugeValues[og.key]--
 	}
 }
@@ -166,6 +173,7 @@ func (og *otelGauge) Add(v float64) {
 	if og.collector != nil {
 		og.collector.gaugeMutex.Lock()
 		defer og.collector.gaugeMutex.Unlock()
+
 		og.collector.gaugeValues[og.key] += int64(v)
 	}
 }

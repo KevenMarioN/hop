@@ -1,5 +1,10 @@
 package protocol
 
+import (
+	"errors"
+	"fmt"
+)
+
 // Queue defines the configuration for a RabbitMQ queue.
 type Queue struct {
 	// Durable indicates if the queue survives broker restarts.
@@ -17,4 +22,35 @@ type Queue struct {
 	// ShouldCreateQueue indicates if this library should declare the queue.
 	// Set to false if queue is managed externally.
 	ShouldCreateQueue bool
+}
+
+// Validate checks if the queue configuration is valid.
+// Returns an error if:
+// - Queue name is empty
+// - Headers map contains invalid values
+func (q Queue) Validate() error {
+	var errs = make([]error, 0)
+
+	if q.Name == "" {
+		errs = append(errs, errors.New("queue name cannot be empty"))
+	}
+
+	// Validate headers
+	if q.Headers != nil {
+		for key, value := range q.Headers {
+			if key == "" {
+				errs = append(errs, errors.New("queue header key cannot be empty"))
+			}
+
+			if value == nil {
+				errs = append(errs, fmt.Errorf("queue header value for key %q cannot be nil", key))
+			}
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("queue validation failed: %w", errors.Join(errs...))
+	}
+
+	return nil
 }

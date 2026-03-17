@@ -33,8 +33,15 @@ type Consumer struct {
 	channel  *amqp.Channel
 }
 
+// Validate checks if the consumer configuration is valid.
+// Returns an error if:
+// - Consumer name is empty
+// - Handler function is nil
+// - Queue configuration is invalid
+// - Exchange configuration is invalid (if provided)
 func (c Consumer) Validate() error {
 	var errs = make([]error, 0)
+
 	if c.Name == "" {
 		errs = append(errs, errors.New("consumer name cannot be empty"))
 	}
@@ -43,7 +50,23 @@ func (c Consumer) Validate() error {
 		errs = append(errs, errors.New("handler cannot be empty"))
 	}
 
-	return errors.Join(errs...)
+	// Validate queue configuration
+	if err := c.Queue.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("queue validation failed: %w", err))
+	}
+
+	// Validate exchange configuration if provided
+	if c.Exchange != nil {
+		if err := c.Exchange.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("exchange validation failed: %w", err))
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("consumer validation failed: %w", errors.Join(errs...))
+	}
+
+	return nil
 }
 
 func (c *Consumer) Msg(msg <-chan amqp.Delivery) {
@@ -58,6 +81,7 @@ func (c *Consumer) Close() error {
 	if err := c.channel.Close(); err != nil {
 		return fmt.Errorf("failed close channel to consumer %s", c.Name)
 	}
+
 	return nil
 }
 

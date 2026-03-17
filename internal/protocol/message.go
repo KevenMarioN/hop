@@ -42,6 +42,7 @@ func (m *Message) success(multi bool) error {
 	if err := m.Ack(multi); err != nil {
 		return fmt.Errorf("failed confirm: %w", err)
 	}
+
 	return nil
 }
 
@@ -71,6 +72,7 @@ func (m *Message) failure(multi, requeue bool) error {
 	if err := m.Nack(multi, requeue); err != nil {
 		return fmt.Errorf("failed failure: %w", err)
 	}
+
 	return nil
 }
 

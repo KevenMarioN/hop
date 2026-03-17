@@ -12,6 +12,7 @@ import (
 )
 
 type ConsumerBuilder = protocol.ConsumerBuilder
+
 type Queue = protocol.Queue
 
 type Message = protocol.Message

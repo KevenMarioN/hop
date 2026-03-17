@@ -132,6 +132,7 @@ func (m *Manager) startConsumer(ctx context.Context, name string, consumer *prot
 						if m.collector != nil {
 							m.collector.Counter("hop_consumption_errors_total", consumer.Name, "handler_error").Inc()
 						}
+
 						return fmt.Errorf("failed to execute handler: %w", err)
 					}
 
@@ -159,6 +160,7 @@ func (m *Manager) recreateConsumer(consumer *protocol.Consumer) error {
 	if err != nil {
 		return fmt.Errorf("failed to create channel: %w", err)
 	}
+
 	consumer.Channel(channel)
 
 	// Always declare topology to ensure it exists

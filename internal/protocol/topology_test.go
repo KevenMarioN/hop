@@ -52,6 +52,10 @@ func TestConsumerValidateWithValidData(t *testing.T) {
 		Exec: func(ctx context.Context, msg Message) error {
 			return nil
 		},
+		Queue: Queue{
+			Name:              "test-queue",
+			ShouldCreateQueue: true,
+		},
 	}
 
 	err := consumer.Validate()
@@ -125,6 +129,157 @@ func TestConsumerExecute(t *testing.T) {
 
 	if !handlerCalled {
 		t.Error("Handler não foi chamado via Execute")
+	}
+}
+
+// TestQueueValidateWithEmptyName tests validation of queue with empty name
+func TestQueueValidateWithEmptyName(t *testing.T) {
+	queue := Queue{
+		Name:              "",
+		ShouldCreateQueue: true,
+	}
+
+	err := queue.Validate()
+	if err == nil {
+		t.Error("Esperado erro de validação, mas obteve nil")
+	}
+
+	if !strings.Contains(err.Error(), "queue name cannot be empty") {
+		t.Errorf("Erro inesperado: %v", err)
+	}
+}
+
+// TestQueueValidateWithValidData tests validation of queue with valid data
+func TestQueueValidateWithValidData(t *testing.T) {
+	queue := Queue{
+		Name:              "test-queue",
+		ShouldCreateQueue: true,
+	}
+
+	err := queue.Validate()
+	if err != nil {
+		t.Errorf("Não esperado erro de validação, mas obteve: %v", err)
+	}
+}
+
+// TestQueueValidateWithInvalidHeaders tests validation of queue with invalid headers
+func TestQueueValidateWithInvalidHeaders(t *testing.T) {
+	queue := Queue{
+		Name:              "test-queue",
+		ShouldCreateQueue: true,
+		Headers: map[string]any{
+			"key": nil,
+		},
+	}
+
+	err := queue.Validate()
+	if err == nil {
+		t.Error("Esperado erro de validação, mas obteve nil")
+	}
+
+	if !strings.Contains(err.Error(), "header") {
+		t.Errorf("Erro inesperado: %v", err)
+	}
+}
+
+// TestExchangeValidateWithEmptyName tests validation of exchange with empty name
+func TestExchangeValidateWithEmptyName(t *testing.T) {
+	exchange := Exchange{
+		Name:                 "",
+		Kind:                 Direct,
+		ShouldCreateExchange: true,
+	}
+
+	err := exchange.Validate()
+	if err == nil {
+		t.Error("Esperado erro de validação, mas obteve nil")
+	}
+
+	if !strings.Contains(err.Error(), "exchange name cannot be empty") {
+		t.Errorf("Erro inesperado: %v", err)
+	}
+}
+
+// TestExchangeValidateWithInvalidKind tests validation of exchange with invalid kind
+func TestExchangeValidateWithInvalidKind(t *testing.T) {
+	exchange := Exchange{
+		Name:                 "test-exchange",
+		Kind:                 "invalid-kind",
+		ShouldCreateExchange: true,
+	}
+
+	err := exchange.Validate()
+	if err == nil {
+		t.Error("Esperado erro de validação, mas obteve nil")
+	}
+
+	if !strings.Contains(err.Error(), "invalid exchange kind") {
+		t.Errorf("Erro inesperado: %v", err)
+	}
+}
+
+// TestExchangeValidateWithValidData tests validation of exchange with valid data
+func TestExchangeValidateWithValidData(t *testing.T) {
+	exchange := Exchange{
+		Name:                 "test-exchange",
+		Kind:                 Direct,
+		ShouldCreateExchange: true,
+	}
+
+	err := exchange.Validate()
+	if err != nil {
+		t.Errorf("Não esperado erro de validação, mas obteve: %v", err)
+	}
+}
+
+// TestConsumerValidateWithInvalidQueue tests validation of consumer with invalid queue
+func TestConsumerValidateWithInvalidQueue(t *testing.T) {
+	consumer := Consumer{
+		Name: "test-consumer",
+		Exec: func(ctx context.Context, msg Message) error {
+			return nil
+		},
+		Queue: Queue{
+			Name:              "",
+			ShouldCreateQueue: true,
+		},
+	}
+
+	err := consumer.Validate()
+	if err == nil {
+		t.Error("Esperado erro de validação, mas obteve nil")
+	}
+
+	if !strings.Contains(err.Error(), "queue validation failed") {
+		t.Errorf("Erro inesperado: %v", err)
+	}
+}
+
+// TestConsumerValidateWithInvalidExchange tests validation of consumer with invalid exchange
+func TestConsumerValidateWithInvalidExchange(t *testing.T) {
+	consumer := Consumer{
+		Name: "test-consumer",
+		Exec: func(ctx context.Context, msg Message) error {
+			return nil
+		},
+		Queue: Queue{
+			Name:              "test-queue",
+			ShouldCreateQueue: true,
+		},
+		Exchange: &Exchange{
+			Name:                 "",
+			Kind:                 Direct,
+			ShouldCreateExchange: true,
+		},
+	}
+
+	err := consumer.Validate()
+	if err == nil {
+		t.Error("Esperado erro de validação, mas obteve nil")
+	}
+
+	if !strings.Contains(err.Error(), "exchange validation failed") {
+		t.Errorf("Erro inesperado: %v", err)
 	}
 }
 

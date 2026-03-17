@@ -1,5 +1,10 @@
 package protocol
 
+import (
+	"errors"
+	"fmt"
+)
+
 // Exchange defines the configuration for a RabbitMQ exchange.
 type Exchange struct {
 	// ShouldCreateExchange indicates if this library should declare the exchange.
@@ -26,6 +31,48 @@ type Exchange struct {
 // Kind represents the type of AMQP exchange.
 type Kind string
 
+// Supported exchange types.
+const (
+	Fanout  Kind = "fanout" // Fanout exchange broadcasts to all bound queues
+	Topic   Kind = "topic"  // Topic exchange routes based on pattern matching
+	Direct  Kind = "direct" // Direct exchange routes by exact routing key
+	Default Kind = ""       // Default exchange (amq.direct)
+)
+
 func (k Kind) String() string {
 	return string(k)
+}
+
+// Validate checks if the exchange configuration is valid.
+// Returns an error if:
+// - Exchange name is empty
+// - Exchange kind is invalid (not one of: fanout, topic, direct, or empty)
+func (e Exchange) Validate() error {
+	var errs = make([]error, 0)
+
+	if e.Name == "" {
+		errs = append(errs, errors.New("exchange name cannot be empty"))
+	}
+
+	// Validate exchange kind
+	validKinds := []Kind{Fanout, Topic, Direct, Default}
+	kindValid := false
+
+	for _, validKind := range validKinds {
+		if e.Kind == validKind {
+			kindValid = true
+			break
+		}
+	}
+
+	if !kindValid {
+		errs = append(errs, fmt.Errorf(
+			"invalid exchange kind: %q (valid kinds: fanout, topic, direct, or empty for default)", e.Kind))
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("exchange validation failed: %w", errors.Join(errs...))
+	}
+
+	return nil
 }

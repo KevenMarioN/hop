@@ -25,6 +25,7 @@ func NewPrometheusCollector(registry prometheus.Registerer) *PrometheusCollector
 	}
 	// Registrar métricas padrão do Hop
 	p.registerDefaultMetrics()
+
 	return p
 }
 
@@ -41,6 +42,7 @@ func (p *PrometheusCollector) Counter(name string, labels ...string) Counter {
 	p.registry.MustRegister(vec)
 	c := vec.WithLabelValues(labels...)
 	p.counters[key] = c
+
 	return &prometheusCounter{c}
 }
 
@@ -49,6 +51,7 @@ func (p *PrometheusCollector) Gauge(name string, labels ...string) Gauge {
 	if g, ok := p.gauges[key]; ok {
 		return &prometheusGauge{g}
 	}
+
 	vec := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{Name: name, Help: name},
 		labels,
@@ -56,6 +59,7 @@ func (p *PrometheusCollector) Gauge(name string, labels ...string) Gauge {
 	p.registry.MustRegister(vec)
 	g := vec.WithLabelValues(labels...)
 	p.gauges[key] = g
+
 	return &prometheusGauge{g}
 }
 
@@ -64,6 +68,7 @@ func (p *PrometheusCollector) Histogram(name string, labels ...string) Histogram
 	if vec, ok := p.histogramVecs[key]; ok {
 		return &prometheusHistogram{vec.WithLabelValues(labels...)}
 	}
+
 	vec := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    name,
@@ -74,6 +79,7 @@ func (p *PrometheusCollector) Histogram(name string, labels ...string) Histogram
 	)
 	p.registry.MustRegister(vec)
 	p.histogramVecs[key] = vec
+
 	return &prometheusHistogram{vec.WithLabelValues(labels...)}
 }
 

@@ -41,6 +41,7 @@ func (mc *MultiCollector) Registerer() any {
 			return r
 		}
 	}
+
 	return nil
 }
 
