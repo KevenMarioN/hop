@@ -11,6 +11,7 @@ import (
 	"github.com/KevenMarioN/hop/internal/protocol"
 )
 
+type ConsumerBuilder = protocol.ConsumerBuilder
 type Queue = protocol.Queue
 
 type Message = protocol.Message
