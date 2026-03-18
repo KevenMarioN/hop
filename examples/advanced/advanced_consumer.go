@@ -10,9 +10,6 @@ import (
 	"time"
 
 	"github.com/KevenMarioN/hop"
-	"github.com/KevenMarioN/hop/conn"
-	"github.com/KevenMarioN/hop/protocol"
-	"github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
@@ -26,7 +23,7 @@ func main() {
 
 	// Create connection with RabbitMQ with custom configuration
 	hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
-		conn.WithConnectionName("meu-app-advanced"),
+		hop.WithConnectionName("meu-app-advanced"),
 	)
 	if err != nil {
 		fmt.Printf("Failed to create connection: %v", err)
@@ -40,14 +37,14 @@ func main() {
 	}()
 
 	// Register consumer 1 - Order processing
-	err = hopClient.Consume(protocol.Consumer{
+	err = hopClient.Consume(hop.Consumer{
 		Name:    "order-processor",
 		AutoAck: false,
-		Queue: protocol.Queue{
+		Queue: hop.Queue{
 			Name:    "orders",
 			Durable: true,
 		},
-		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
+		Exec: func(ctx context.Context, msg hop.Message) error {
 			defer func() {
 				if err := msg.Ack(true); err != nil {
 					fmt.Print(err)
@@ -67,14 +64,14 @@ func main() {
 	}
 
 	// Register consumer 2 - Notification processing
-	err = hopClient.Consume(protocol.Consumer{
+	err = hopClient.Consume(hop.Consumer{
 		Name:    "notification-processor",
 		AutoAck: false,
-		Queue: protocol.Queue{
+		Queue: hop.Queue{
 			Name:    "notifications",
 			Durable: true,
 		},
-		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
+		Exec: func(ctx context.Context, msg hop.Message) error {
 			defer func() {
 				if err := msg.Ack(true); err != nil {
 					fmt.Print(err)
@@ -94,14 +91,14 @@ func main() {
 	}
 
 	// Register consumer 3 - Log processing
-	err = hopClient.Consume(protocol.Consumer{
+	err = hopClient.Consume(hop.Consumer{
 		Name:    "log-processor",
 		AutoAck: true, // Auto-ack for logs
-		Queue: protocol.Queue{
+		Queue: hop.Queue{
 			Name:    "logs",
 			Durable: false, // Non-durable queue for logs
 		},
-		Exec: func(ctx context.Context, msg amqp091.Delivery) error {
+		Exec: func(ctx context.Context, msg hop.Message) error {
 			fmt.Printf("[Log] %s\n", string(msg.Body))
 			return nil
 		},

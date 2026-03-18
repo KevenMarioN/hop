@@ -4,7 +4,7 @@
 [![GoDoc](https://godoc.org/github.com/KevenMarioN/hop?status.svg)](https://godoc.org/github.com/KevenMarioN/hop)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Hop é uma biblioteca Go simples e resiliente para conexão com RabbitMQ, com suporte a auto-reconnect, graceful shutdown e consumo de mensagens.
+Hop é uma biblioteca Go simples e resiliente para conexão com RabbitMQ, com suporte a auto-reconnect, graceful shutdown, métricas Prometheus e consumo de mensagens.
 
 ## 🚀 Instalação
 
@@ -17,6 +17,8 @@ go get github.com/KevenMarioN/hop
 - [amqp091-go](https://github.com/rabbitmq/amqp091-go) - Cliente AMQP oficial
 - [zerolog](https://github.com/rs/zerolog) - Logging estruturado
 - [errgroup](https://golang.org/x/sync/errgroup) - Gerenciamento de goroutines
+- [prometheus/client_golang](https://github.com/prometheus/client_golang) - Métricas Prometheus (opcional)
+- [opentelemetry-go](https://github.com/open-telemetry/opentelemetry-go) - Métricas OpenTelemetry (opcional)
 
 ## 🔧 Uso Básico
 
@@ -158,6 +160,20 @@ type Client interface {
 }
 ```
 
+### Opções de Configuração
+
+```go
+import "github.com/KevenMarioN/hop/conn"
+
+// Configurações disponíveis:
+conn.WithConnectionName("my-app")          // Nome da conexão
+conn.WithBackoff(2, 100*time.Millisecond, 30*time.Second) // Backoff
+conn.WithTLS(tlsConfig)                   // TLS
+conn.WithServiceName("my-service")        // Nome do serviço
+conn.WithMetrics(collector)               // Métricas dinâmicas (interface)
+conn.WithPrometheusMetrics(registry)      // Métricas Prometheus (conveniência)
+```
+
 ### Funções
 
 #### `New(ctx context.Context, url string, opts ...conn.HopOption) (Client, error)`
@@ -261,12 +277,32 @@ type Exchange struct {
 }
 ```
 
+#### `protocol.Message`
+
+Wrapper para amqp.Delivery que permite extensões futuras da mensagem.
+
+```go
+type Message struct {
+    amqp091.Delivery
+}
+```
+
+Campos principais incorporados:
+- `Body`: []byte com o payload da mensagem
+- `Headers`: map[string]interface{} com headers da mensagem
+- `ContentType`: string descrevendo o formato da mensagem
+- `DeliveryTag`: uint64 identificador do delivery
+- `Exchange`: string nome do exchange de origem
+- `RoutingKey`: string chave de roteamento usada para delivery
+- `ConsumerTag`: string identificador do consumer
+- `MessageCount`: uint32 número de mensagens restantes na fila
+
 #### `protocol.Handler`
 
 Função de processamento de mensagens.
 
 ```go
-type Handler func(ctx context.Context, msg amqp091.Delivery) error
+type Handler func(ctx context.Context, msg Message) error
 ```
 
 #### `protocol.Kind`
@@ -299,6 +335,73 @@ Encerra conexões e goroutines de forma segura, garantindo que todas as mensagen
 ### Logging Estruturado
 
 Utiliza zerolog para logging estruturado e performático.
+
+### Métricas Dinâmicas
+
+O sistema de métricas do Hop é totalmente desacoplado e suporta múltiplos backends:
+
+- **Prometheus**: `metrics.NewPrometheusCollector(registry)`
+- **Multi-collector**: `metrics.NewMultiCollector(collector1, collector2)`
+- **No-op**: `metrics.NopCollector` (desabilitado)
+
+Ative com `WithMetrics(collector)` ou `WithPrometheusMetrics(registry)` para compatibilidade.
+
+#### Exemplo com Prometheus
+
+```go
+import (
+    "github.com/KevenMarioN/hop"
+    "github.com/KevenMarioN/hop/conn"
+    "github.com/prometheus/client_golang/prometheus"
+)
+
+registry := prometheus.NewRegistry()
+hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
+    conn.WithPrometheusMetrics(registry),
+)
+```
+
+#### Exemplo com múltiplos backends
+
+```go
+import (
+    "github.com/KevenMarioN/hop/metrics"
+    "github.com/prometheus/client_golang/prometheus"
+    "go.opentelemetry.io/otel/metric"
+)
+
+promCollector := metrics.NewPrometheusCollector(promRegistry)
+otelCollector := metrics.NewOpenTelemetryCollector(otelMeter)
+multi := metrics.NewMultiCollector(promCollector, otelCollector)
+
+hopClient, err := hop.New(ctx, "amqp://user:pass@localhost:5672/",
+    conn.WithMetrics(multi),
+)
+```
+
+#### Métricas disponíveis
+
+- `hop_messages_consumed_total` (Counter): Total de mensagens consumidas
+- `hop_consumption_errors_total` (Counter): Total de erros de consumo
+- `hop_reconnects_total` (Counter): Total de reconexões
+- `hop_connection_duration_seconds` (Gauge): Duração da conexão atual
+- `hop_active_consumers` (Gauge): Número de consumers ativos
+- `hop_message_processing_duration_seconds` (Histogram): Duração do processamento de mensagens
+
+### ConsumerBuilder
+
+API fluida para construção de consumers de forma type-safe e imutável:
+
+```go
+consumer, err := protocol.NewConsumerBuilder("my-consumer").
+    WithQueue(protocol.Queue{Name: "my-queue", Durable: true}).
+    WithExchange(&protocol.Exchange{Name: "my-exchange", Kind: protocol.Direct}).
+    WithHandler(func(ctx context.Context, msg amqp091.Delivery) error {
+        // Processa mensagem
+        return nil
+    }).
+    Build()
+```
 
 ## 🧪 Testes
 
