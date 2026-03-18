@@ -1,0 +1,35 @@
+name: Delete Plans Folder on Main Merge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  delete-plans:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Delete plans folder
+        run: |
+          if [ -d "plans" ]; then
+            echo "Deleting plans folder..."
+            rm -rf plans
+            git add plans
+            git commit -m "ci: remove plans folder from main branch - The plans folder should only exist in the develop branch. This commit removes it from main to keep production clean."
+            git push origin main
+            echo "Plans folder deleted successfully."
+          else
+            echo "Plans folder does not exist. Skipping."
+          fi
