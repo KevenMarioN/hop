@@ -1,11 +1,11 @@
 package metrics
 
-// MultiCollector permite usar múltiplos collectors simultaneamente.
+// MultiCollector allows using multiple collectors simultaneously.
 type MultiCollector struct {
 	collectors []MetricsCollector
 }
 
-// NewMultiCollector cria um novo collector que envia métricas para múltiplos backends.
+// NewMultiCollector creates a new collector that sends metrics to multiple backends.
 func NewMultiCollector(collectors ...MetricsCollector) *MultiCollector {
 	return &MultiCollector{collectors: collectors}
 }
@@ -35,7 +35,7 @@ func (mc *MultiCollector) Histogram(name string, labels ...string) Histogram {
 }
 
 func (mc *MultiCollector) Registerer() any {
-	// Retorna o primeiro registerer disponível (para compatibilidade)
+	// Return the first available registerer (for compatibility)
 	for _, c := range mc.collectors {
 		if r := c.Registerer(); r != nil {
 			return r

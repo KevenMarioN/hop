@@ -1,26 +1,26 @@
 package metrics
 
-// MetricsCollector define a interface para coleta de métricas.
-// Implementações podem ser Prometheus, OpenTelemetry, ou qualquer outro sistema.
+// MetricsCollector defines the interface for metrics collection.
+// Implementations can be Prometheus, OpenTelemetry, or any other system.
 type MetricsCollector interface {
-	// Counter retorna uma métrica do tipo Counter com as labels fornecidas.
+	// Counter returns a Counter metric with the provided labels.
 	Counter(name string, labels ...string) Counter
-	// Gauge retorna uma métrica do tipo Gauge com as labels fornecidas.
+	// Gauge returns a Gauge metric with the provided labels.
 	Gauge(name string, labels ...string) Gauge
-	// Histogram retorna uma métrica do tipo Histogram com as labels fornecidas.
+	// Histogram returns a Histogram metric with the provided labels.
 	Histogram(name string, labels ...string) Histogram
-	// Registerer retorna o registerer subjacente para registro de métricas.
-	// Pode ser nil se o collector não suportar registro explícito.
+	// Registerer returns the underlying registerer for metric registration.
+	// May be nil if the collector doesn't support explicit registration.
 	Registerer() any
 }
 
-// Counter representa uma métrica counter.
+// Counter represents a counter metric.
 type Counter interface {
 	Inc()
 	Add(float64)
 }
 
-// Gauge representa uma métrica gauge.
+// Gauge represents a gauge metric.
 type Gauge interface {
 	Set(float64)
 	Inc()
@@ -28,7 +28,7 @@ type Gauge interface {
 	Add(float64)
 }
 
-// Histogram representa uma métrica histograma para medir distribuição de valores.
+// Histogram represents a histogram metric for measuring value distributions.
 type Histogram interface {
 	Observe(value float64)
 }

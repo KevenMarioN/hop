@@ -20,11 +20,11 @@ func TestConsumerValidateWithEmptyName(t *testing.T) {
 
 	err := consumer.Validate()
 	if err == nil {
-		t.Error("Esperado erro de validação, mas obteve nil")
+		t.Error("Expected validation error, but got nil")
 	}
 
 	if !strings.Contains(err.Error(), "consumer name cannot be empty") {
-		t.Errorf("Erro inesperado: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
@@ -37,11 +37,11 @@ func TestConsumerValidateWithNullHandler(t *testing.T) {
 
 	err := consumer.Validate()
 	if err == nil {
-		t.Error("Esperado erro de validação, mas obteve nil")
+		t.Error("Expected validation error, but got nil")
 	}
 
 	if !strings.Contains(err.Error(), "handler cannot be empty") {
-		t.Errorf("Erro inesperado: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
@@ -60,7 +60,7 @@ func TestConsumerValidateWithValidData(t *testing.T) {
 
 	err := consumer.Validate()
 	if err != nil {
-		t.Errorf("Não esperado erro de validação, mas obteve: %v", err)
+		t.Errorf("Expected no validation error, but got: %v", err)
 	}
 }
 
@@ -71,7 +71,7 @@ func TestConsumerMsg(t *testing.T) {
 	consumer.Msg(msgChan)
 
 	if consumer.Listen() != msgChan {
-		t.Error("Msg não configurou o canal corretamente")
+		t.Error("Msg did not configure the channel correctly")
 	}
 }
 
@@ -82,7 +82,7 @@ func TestConsumerListen(t *testing.T) {
 	consumer.Msg(msgChan)
 
 	if consumer.Listen() != msgChan {
-		t.Error("Listen não retornou o canal configurado")
+		t.Error("Listen did not return the configured channel")
 	}
 }
 
@@ -98,17 +98,17 @@ func TestConsumerHandler(t *testing.T) {
 	consumer.Handler(handler)
 
 	if consumer.Exec == nil {
-		t.Error("Handler não configurou o Exec")
+		t.Error("Handler did not configure Exec")
 	}
 
-	// Testa se o handler foi configurado corretamente
+	// Test if handler was configured correctly
 	err := consumer.Exec(context.Background(), Message{})
 	if err != nil {
-		t.Errorf("Handler retornou erro inesperado: %v", err)
+		t.Errorf("Handler returned unexpected error: %v", err)
 	}
 
 	if !handlerCalled {
-		t.Error("Handler não foi chamado")
+		t.Error("Handler was not called")
 	}
 }
 
@@ -124,11 +124,11 @@ func TestConsumerExecute(t *testing.T) {
 
 	err := consumer.Execute(context.Background(), Message{})
 	if err != nil {
-		t.Errorf("Execute retornou erro inesperado: %v", err)
+		t.Errorf("Execute returned unexpected error: %v", err)
 	}
 
 	if !handlerCalled {
-		t.Error("Handler não foi chamado via Execute")
+		t.Error("Handler was not called via Execute")
 	}
 }
 
@@ -141,11 +141,11 @@ func TestQueueValidateWithEmptyName(t *testing.T) {
 
 	err := queue.Validate()
 	if err == nil {
-		t.Error("Esperado erro de validação, mas obteve nil")
+		t.Error("Expected validation error, but got nil")
 	}
 
 	if !strings.Contains(err.Error(), "queue name cannot be empty") {
-		t.Errorf("Erro inesperado: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
@@ -158,7 +158,7 @@ func TestQueueValidateWithValidData(t *testing.T) {
 
 	err := queue.Validate()
 	if err != nil {
-		t.Errorf("Não esperado erro de validação, mas obteve: %v", err)
+		t.Errorf("Expected no validation error, but got: %v", err)
 	}
 }
 
@@ -174,11 +174,11 @@ func TestQueueValidateWithInvalidHeaders(t *testing.T) {
 
 	err := queue.Validate()
 	if err == nil {
-		t.Error("Esperado erro de validação, mas obteve nil")
+		t.Error("Expected validation error, but got nil")
 	}
 
 	if !strings.Contains(err.Error(), "header") {
-		t.Errorf("Erro inesperado: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
@@ -192,11 +192,11 @@ func TestExchangeValidateWithEmptyName(t *testing.T) {
 
 	err := exchange.Validate()
 	if err == nil {
-		t.Error("Esperado erro de validação, mas obteve nil")
+		t.Error("Expected validation error, but got nil")
 	}
 
 	if !strings.Contains(err.Error(), "exchange name cannot be empty") {
-		t.Errorf("Erro inesperado: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
@@ -210,11 +210,11 @@ func TestExchangeValidateWithInvalidKind(t *testing.T) {
 
 	err := exchange.Validate()
 	if err == nil {
-		t.Error("Esperado erro de validação, mas obteve nil")
+		t.Error("Expected validation error, but got nil")
 	}
 
 	if !strings.Contains(err.Error(), "invalid exchange kind") {
-		t.Errorf("Erro inesperado: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
@@ -228,7 +228,7 @@ func TestExchangeValidateWithValidData(t *testing.T) {
 
 	err := exchange.Validate()
 	if err != nil {
-		t.Errorf("Não esperado erro de validação, mas obteve: %v", err)
+		t.Errorf("Expected no validation error, but got: %v", err)
 	}
 }
 
@@ -247,11 +247,11 @@ func TestConsumerValidateWithInvalidQueue(t *testing.T) {
 
 	err := consumer.Validate()
 	if err == nil {
-		t.Error("Esperado erro de validação, mas obteve nil")
+		t.Error("Expected validation error, but got nil")
 	}
 
 	if !strings.Contains(err.Error(), "queue validation failed") {
-		t.Errorf("Erro inesperado: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
@@ -275,11 +275,11 @@ func TestConsumerValidateWithInvalidExchange(t *testing.T) {
 
 	err := consumer.Validate()
 	if err == nil {
-		t.Error("Esperado erro de validação, mas obteve nil")
+		t.Error("Expected validation error, but got nil")
 	}
 
 	if !strings.Contains(err.Error(), "exchange validation failed") {
-		t.Errorf("Erro inesperado: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
@@ -294,10 +294,10 @@ func TestConsumerExecuteWithError(t *testing.T) {
 
 	err := consumer.Execute(context.Background(), Message{})
 	if err == nil {
-		t.Error("Esperado erro do handler, mas obteve nil")
+		t.Error("Expected handler error, but got nil")
 	}
 
 	if !errors.Is(err, expectedErr) {
-		t.Errorf("Erro inesperado: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 	}
 }

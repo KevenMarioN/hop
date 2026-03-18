@@ -153,7 +153,7 @@ func TestRetryOnceWithFailure(t *testing.T) {
 	}
 }
 
-// TestWithInitialDelay testa opção WithInitialDelay
+// TestWithInitialDelay tests WithInitialDelay option
 func TestWithInitialDelay(t *testing.T) {
 	cfg := defaultConfig()
 	initialDelay := 200 * time.Millisecond
@@ -166,7 +166,7 @@ func TestWithInitialDelay(t *testing.T) {
 	}
 }
 
-// TestWithMaxDelay testa opção WithMaxDelay
+// TestWithMaxDelay tests WithMaxDelay option
 func TestWithMaxDelay(t *testing.T) {
 	cfg := defaultConfig()
 	maxDelay := 60 * time.Second
@@ -179,7 +179,7 @@ func TestWithMaxDelay(t *testing.T) {
 	}
 }
 
-// TestDefaultConfig testa configuração padrão
+// TestDefaultConfig tests default configuration
 func TestDefaultConfig(t *testing.T) {
 	cfg := defaultConfig()
 

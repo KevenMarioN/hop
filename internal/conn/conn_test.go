@@ -49,7 +49,7 @@ func TestConsumeWithValidationError(t *testing.T) {
 		consumerMgr: consumer.NewManager(&amqp.Connection{}, nil),
 	}
 
-	// Consumer com nome vazio
+	// Consumer with empty name
 	consumer := protocol.Consumer{
 		Name: "",
 		Exec: func(ctx context.Context, msg protocol.Message) error {
@@ -74,7 +74,7 @@ func TestConsumeWithNullHandler(t *testing.T) {
 		consumerMgr: consumer.NewManager(&amqp.Connection{}, nil),
 	}
 
-	// Consumer com handler nulo
+	// Consumer with null handler
 	consumer := protocol.Consumer{
 		Name: "test-consumer",
 		Exec: nil,

@@ -16,8 +16,8 @@ type nopHistogram struct{}
 
 func (nh *nopHistogram) Observe(value float64) {}
 
-// NopCollector é um collector que não faz nada.
-// Útil quando métricas estão desabilitadas.
+// NopCollector is a collector that does nothing.
+// Useful when metrics are disabled.
 var NopCollector = &nopCollector{}
 
 type nopCollector struct{}

@@ -9,7 +9,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
-// OpenTelemetryCollector implementa MetricsCollector usando OpenTelemetry.
+// OpenTelemetryCollector implements MetricsCollector using OpenTelemetry.
 type OpenTelemetryCollector struct {
 	meter       metric.Meter
 	counters    map[string]metric.Int64Counter
@@ -19,7 +19,7 @@ type OpenTelemetryCollector struct {
 	histograms  map[string]metric.Float64Histogram
 }
 
-// NewOpenTelemetryCollector cria um novo collector OpenTelemetry.
+// NewOpenTelemetryCollector creates a new OpenTelemetry collector.
 func NewOpenTelemetryCollector(meterName string) *OpenTelemetryCollector {
 	meter := otel.Meter(meterName)
 
@@ -31,7 +31,7 @@ func NewOpenTelemetryCollector(meterName string) *OpenTelemetryCollector {
 		histograms:  make(map[string]metric.Float64Histogram),
 	}
 
-	// Registrar métricas padrão do Hop
+	// Register default Hop metrics
 	oc.registerDefaultMetrics()
 
 	return oc
@@ -44,13 +44,13 @@ func (oc *OpenTelemetryCollector) Counter(name string, labels ...string) Counter
 		return &otelCounter{counter: c, labels: labels}
 	}
 
-	// Criar novo counter
+	// Create new counter
 	counter, err := oc.meter.Int64Counter(
 		name,
 		metric.WithDescription(name),
 	)
 	if err != nil {
-		// Em caso de erro, retornar counter no-op
+		// In case of error, return no-op counter
 		return &otelCounter{}
 	}
 
@@ -66,7 +66,7 @@ func (oc *OpenTelemetryCollector) Gauge(name string, labels ...string) Gauge {
 		return &otelGauge{gauge: g, collector: oc, key: key, labels: labels}
 	}
 
-	// Criar novo gauge observável
+	// Create new observable gauge
 	gauge, err := oc.meter.Int64ObservableGauge(
 		name,
 		metric.WithDescription(name),
@@ -82,7 +82,7 @@ func (oc *OpenTelemetryCollector) Gauge(name string, labels ...string) Gauge {
 		}),
 	)
 	if err != nil {
-		// Em caso de erro, retornar gauge no-op
+		// In case of error, return no-op gauge
 		return &otelGauge{}
 	}
 
@@ -98,13 +98,13 @@ func (oc *OpenTelemetryCollector) Histogram(name string, labels ...string) Histo
 		return &otelHistogram{histogram: h}
 	}
 
-	// Criar novo histogram
+	// Create new histogram
 	histogram, err := oc.meter.Float64Histogram(
 		name,
 		metric.WithDescription(name),
 	)
 	if err != nil {
-		// Em caso de erro, retornar histogram no-op
+		// In case of error, return no-op histogram
 		return &otelHistogram{}
 	}
 
@@ -114,10 +114,10 @@ func (oc *OpenTelemetryCollector) Histogram(name string, labels ...string) Histo
 }
 
 func (oc *OpenTelemetryCollector) Registerer() any {
-	return nil // OpenTelemetry não usa registerer
+	return nil // OpenTelemetry doesn't use registerer
 }
 
-// Implementações wrapper
+// Wrapper implementations
 type otelCounter struct {
 	counter metric.Int64Counter
 	labels  []string
@@ -188,23 +188,23 @@ func (oh *otelHistogram) Observe(value float64) {
 	}
 }
 
-// Métricas padrão do Hop
+// Default Hop metrics
 func (oc *OpenTelemetryCollector) registerDefaultMetrics() {
-	// MessagesConsumed: counter com labels consumer, queue
+	// MessagesConsumed: counter with consumer, queue labels
 	oc.Counter("hop_messages_consumed_total", "consumer", "queue")
 
-	// ConsumptionErrors: counter com labels consumer, error_type
+	// ConsumptionErrors: counter with consumer, error_type labels
 	oc.Counter("hop_consumption_errors_total", "consumer", "error_type")
 
-	// Reconnects: counter sem labels
+	// Reconnects: counter without labels
 	oc.Counter("hop_reconnects_total")
 
-	// ConnectionDuration: gauge sem labels
+	// ConnectionDuration: gauge without labels
 	oc.Gauge("hop_connection_duration_seconds")
 
-	// ActiveConsumers: gauge sem labels
+	// ActiveConsumers: gauge without labels
 	oc.Gauge("hop_active_consumers")
 
-	// MessageProcessingDuration: histogram com labels consumer, queue
+	// MessageProcessingDuration: histogram with consumer, queue labels
 	oc.Histogram("hop_message_processing_duration_seconds", "consumer", "queue")
 }

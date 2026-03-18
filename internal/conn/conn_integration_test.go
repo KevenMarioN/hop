@@ -10,10 +10,10 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-// TestIntegrationPublishAndConsume testa publicação e consumo de mensagem com RabbitMQ real
+// TestIntegrationPublishAndConsume tests publishing and consuming messages with real RabbitMQ
 func TestIntegrationPublishAndConsume(t *testing.T) {
 	if testing.Short() {
-		t.Skip("Pulando teste de integração em modo curto")
+		t.Skip("Skipping integration test in short mode")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -22,20 +22,20 @@ func TestIntegrationPublishAndConsume(t *testing.T) {
 	// Conectar ao RabbitMQ local
 	client, err := Connect(ctx, "amqp://admin:admin@localhost:5672/")
 	if err != nil {
-		t.Fatalf("Falha ao conectar: %v", err)
+		t.Fatalf("Failed to connect: %v", err)
 	}
 	defer client.Close()
 
-	// Criar canal diretamente com AMQP (pois Publish não está implementado no hop)
+	// Create channel directly with AMQP (since Publish is not implemented in hop)
 	conn, err := amqp.Dial("amqp://admin:admin@localhost:5672/")
 	if err != nil {
-		t.Fatalf("Falha ao conectar para publicação: %v", err)
+		t.Fatalf("Failed to connect for publishing: %v", err)
 	}
 	defer conn.Close()
 
 	channel, err := conn.Channel()
 	if err != nil {
-		t.Fatalf("Falha ao criar canal: %v", err)
+		t.Fatalf("Failed to create channel: %v", err)
 	}
 	defer channel.Close()
 
@@ -53,7 +53,7 @@ func TestIntegrationPublishAndConsume(t *testing.T) {
 		nil,   // arguments
 	)
 	if err != nil {
-		t.Fatalf("Falha ao declarar exchange: %v", err)
+		t.Fatalf("Failed to declare exchange: %v", err)
 	}
 
 	_, err = channel.QueueDeclare(
@@ -65,7 +65,7 @@ func TestIntegrationPublishAndConsume(t *testing.T) {
 		nil,   // arguments
 	)
 	if err != nil {
-		t.Fatalf("Falha ao declarar queue: %v", err)
+		t.Fatalf("Failed to declare queue: %v", err)
 	}
 
 	err = channel.QueueBind(
@@ -76,11 +76,11 @@ func TestIntegrationPublishAndConsume(t *testing.T) {
 		nil,   // arguments
 	)
 	if err != nil {
-		t.Fatalf("Falha ao bind queue: %v", err)
+		t.Fatalf("Failed to bind queue: %v", err)
 	}
 
-	// Publicar mensagem
-	testMessage := []byte("Mensagem de teste de integração")
+	// Publish message
+	testMessage := []byte("Integration test message")
 
 	err = channel.Publish(
 		exchangeName,
@@ -93,10 +93,10 @@ func TestIntegrationPublishAndConsume(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Falha ao publicar mensagem: %v", err)
+		t.Fatalf("Failed to publish message: %v", err)
 	}
 
-	// Consumir mensagem
+	// Consume message
 	msgs, err := channel.Consume(
 		queueName,
 		"test_consumer",
@@ -107,52 +107,52 @@ func TestIntegrationPublishAndConsume(t *testing.T) {
 		nil,   // arguments
 	)
 	if err != nil {
-		t.Fatalf("Falha ao consumir mensagens: %v", err)
+		t.Fatalf("Failed to consume messages: %v", err)
 	}
 
-	// Esperar pela mensagem
+	// Wait for message
 	select {
 	case msg := <-msgs:
 		if string(msg.Body) != string(testMessage) {
-			t.Errorf("Mensagem recebida diferente da enviada. Esperado: %s, Recebido: %s",
+			t.Errorf("Received message different from sent. Expected: %s, Received: %s",
 				string(testMessage), string(msg.Body))
 		}
 
 		msg.Ack(false)
 	case <-time.After(5 * time.Second):
-		t.Fatal("Timeout esperando mensagem")
+		t.Fatal("Timeout waiting for message")
 	}
 }
 
-// TestIntegrationWithMetrics testa integração com métricas
+// TestIntegrationWithMetrics tests integration with metrics
 func TestIntegrationWithMetrics(t *testing.T) {
 	if testing.Short() {
-		t.Skip("Pulando teste de integração em modo curto")
+		t.Skip("Skipping integration test in short mode")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Criar collector de métricas (NopCollector é uma variável, não uma função)
+	// Create metrics collector (NopCollector is a variable, not a function)
 	collector := metrics.NopCollector
 
 	// Conectar ao RabbitMQ local
 	client, err := Connect(ctx, "amqp://admin:admin@localhost:5672/", WithMetrics(collector))
 	if err != nil {
-		t.Fatalf("Falha ao conectar: %v", err)
+		t.Fatalf("Failed to connect: %v", err)
 	}
 	defer client.Close()
 
 	// Verificar que a conexão foi estabelecida
 	if client == nil {
-		t.Fatal("Cliente é nulo")
+		t.Fatal("Client is nil")
 	}
 }
 
-// TestIntegrationConsumerManager testa Manager com RabbitMQ real
+// TestIntegrationConsumerManager tests Manager with real RabbitMQ
 func TestIntegrationConsumerManager(t *testing.T) {
 	if testing.Short() {
-		t.Skip("Pulando teste de integração em modo curto")
+		t.Skip("Skipping integration test in short mode")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -161,11 +161,11 @@ func TestIntegrationConsumerManager(t *testing.T) {
 	// Conectar ao RabbitMQ local
 	client, err := Connect(ctx, "amqp://admin:admin@localhost:5672/")
 	if err != nil {
-		t.Fatalf("Falha ao conectar: %v", err)
+		t.Fatalf("Failed to connect: %v", err)
 	}
 	defer client.Close()
 
-	// Criar consumer de teste usando ConsumerBuilder
+	// Create test consumer using ConsumerBuilder
 	testQueue := "test_manager_queue"
 
 	testConsumer, err := protocol.NewConsumerBuilder("test_manager_consumer").
@@ -175,34 +175,34 @@ func TestIntegrationConsumerManager(t *testing.T) {
 			Durable:           true,
 		}).
 		WithHandler(func(ctx context.Context, msg protocol.Message) error {
-			// Processar mensagem
-			t.Logf("Mensagem recebida: %s", string(msg.Body))
+			// Process message
+			t.Logf("Received message: %s", string(msg.Body))
 			return nil
 		}).
 		Build()
 	if err != nil {
-		t.Fatalf("Falha ao criar consumer: %v", err)
+		t.Fatalf("Failed to create consumer: %v", err)
 	}
 
-	// Registrar consumer
+	// Register consumer
 	err = client.Consume(*testConsumer)
 	if err != nil {
-		t.Fatalf("Falha ao registrar consumer: %v", err)
+		t.Fatalf("Failed to register consumer: %v", err)
 	}
 
 	// Iniciar consumers
 	client.StartConsumers(ctx)
 
-	// Publicar mensagem de teste usando conexão separada
+	// Publish test message using separate connection
 	conn, err := amqp.Dial("amqp://admin:admin@localhost:5672/")
 	if err != nil {
-		t.Fatalf("Falha ao conectar para publicação: %v", err)
+		t.Fatalf("Failed to connect for publishing: %v", err)
 	}
 	defer conn.Close()
 
 	channel, err := conn.Channel()
 	if err != nil {
-		t.Fatalf("Falha ao criar canal: %v", err)
+		t.Fatalf("Failed to create channel: %v", err)
 	}
 	defer channel.Close()
 
@@ -215,10 +215,10 @@ func TestIntegrationConsumerManager(t *testing.T) {
 		nil,   // arguments
 	)
 	if err != nil {
-		t.Fatalf("Falha ao declarar queue: %v", err)
+		t.Fatalf("Failed to declare queue: %v", err)
 	}
 
-	testMessage := []byte("Mensagem para manager")
+	testMessage := []byte("Message for manager")
 
 	err = channel.Publish(
 		"",
@@ -231,14 +231,14 @@ func TestIntegrationConsumerManager(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("Falha ao publicar mensagem: %v", err)
+		t.Fatalf("Failed to publish message: %v", err)
 	}
 
-	// Aguardar processamento
+	// Wait for processing
 	time.Sleep(500 * time.Millisecond)
 
-	// Fechar a conexão (isso deve disparar o shutdown)
+	// Close the connection (this should trigger shutdown)
 	if err := client.Close(); err != nil {
-		t.Logf("Erro ao fechar conexão: %v", err)
+		t.Logf("Error closing connection: %v", err)
 	}
 }

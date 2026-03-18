@@ -6,16 +6,16 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// PrometheusCollector implementa MetricsCollector usando Prometheus.
+// PrometheusCollector implements MetricsCollector using Prometheus.
 type PrometheusCollector struct {
 	registry prometheus.Registerer
-	// Cache de métricas para evitar lookup repetido
+	// Cache of metrics to avoid repeated lookups
 	counters      map[string]prometheus.Counter
 	gauges        map[string]prometheus.Gauge
 	histogramVecs map[string]*prometheus.HistogramVec
 }
 
-// NewPrometheusCollector cria um novo collector Prometheus.
+// NewPrometheusCollector creates a new Prometheus collector.
 func NewPrometheusCollector(registry prometheus.Registerer) *PrometheusCollector {
 	p := &PrometheusCollector{
 		registry:      registry,
@@ -23,7 +23,7 @@ func NewPrometheusCollector(registry prometheus.Registerer) *PrometheusCollector
 		gauges:        make(map[string]prometheus.Gauge),
 		histogramVecs: make(map[string]*prometheus.HistogramVec),
 	}
-	// Registrar métricas padrão do Hop
+	// Register default Hop metrics
 	p.registerDefaultMetrics()
 
 	return p
@@ -34,7 +34,7 @@ func (p *PrometheusCollector) Counter(name string, labels ...string) Counter {
 	if c, ok := p.counters[key]; ok {
 		return &prometheusCounter{c}
 	}
-	// Criar nova métrica
+	// Create new metric
 	vec := prometheus.NewCounterVec(
 		prometheus.CounterOpts{Name: name, Help: name},
 		labels,
@@ -87,7 +87,7 @@ func (p *PrometheusCollector) Registerer() any {
 	return p.registry
 }
 
-// Implementações wrapper
+// Wrapper implementations
 type prometheusCounter struct{ c prometheus.Counter }
 
 func (pc *prometheusCounter) Inc()          { pc.c.Inc() }
@@ -104,9 +104,9 @@ type prometheusHistogram struct{ h prometheus.Observer }
 
 func (ph *prometheusHistogram) Observe(value float64) { ph.h.Observe(value) }
 
-// Métricas padrão do Hop
+// Default Hop metrics
 func (p *PrometheusCollector) registerDefaultMetrics() {
-	// MessagesConsumed: counter com labels consumer, queue
+	// MessagesConsumed: counter with consumer, queue labels
 	messagesConsumed := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "hop_messages_consumed_total",
@@ -117,7 +117,7 @@ func (p *PrometheusCollector) registerDefaultMetrics() {
 	p.registry.MustRegister(messagesConsumed)
 	p.counters["hop_messages_consumed_total|consumer|queue"] = messagesConsumed.WithLabelValues()
 
-	// ConsumptionErrors: counter com labels consumer, error_type
+	// ConsumptionErrors: counter with consumer, error_type labels
 	consumptionErrors := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "hop_consumption_errors_total",
@@ -128,7 +128,7 @@ func (p *PrometheusCollector) registerDefaultMetrics() {
 	p.registry.MustRegister(consumptionErrors)
 	p.counters["hop_consumption_errors_total|consumer|error_type"] = consumptionErrors.WithLabelValues()
 
-	// Reconnects: counter sem labels
+	// Reconnects: counter without labels
 	reconnects := prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Name: "hop_reconnects_total",
@@ -138,7 +138,7 @@ func (p *PrometheusCollector) registerDefaultMetrics() {
 	p.registry.MustRegister(reconnects)
 	p.counters["hop_reconnects_total|"] = reconnects
 
-	// ConnectionDuration: gauge sem labels
+	// ConnectionDuration: gauge without labels
 	connectionDuration := prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "hop_connection_duration_seconds",
@@ -148,7 +148,7 @@ func (p *PrometheusCollector) registerDefaultMetrics() {
 	p.registry.MustRegister(connectionDuration)
 	p.gauges["hop_connection_duration_seconds|"] = connectionDuration
 
-	// ActiveConsumers: gauge sem labels
+	// ActiveConsumers: gauge without labels
 	activeConsumers := prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "hop_active_consumers",
@@ -158,7 +158,7 @@ func (p *PrometheusCollector) registerDefaultMetrics() {
 	p.registry.MustRegister(activeConsumers)
 	p.gauges["hop_active_consumers|"] = activeConsumers
 
-	// MessageProcessingDuration: histogram com labels consumer, queue
+	// MessageProcessingDuration: histogram with consumer, queue labels
 	messageProcessingDuration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "hop_message_processing_duration_seconds",
