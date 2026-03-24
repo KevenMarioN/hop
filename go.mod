@@ -1,6 +1,7 @@
 module github.com/KevenMarioN/hop
 
-go 1.26
+go 1.25.5
+
 require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rabbitmq/amqp091-go v1.10.0

@@ -168,21 +168,6 @@ func (m *Manager) recreateConsumer(consumer *protocol.Consumer) error {
 		return fmt.Errorf("failed to declare topology: %w", err)
 	}
 
-	msg, err := channel.Consume(
-		consumer.Queue.Name,
-		consumer.Name,
-		consumer.AutoAck,
-		consumer.Exclusive,
-		consumer.NoLocal,
-		consumer.NoWait,
-		consumer.Headers,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to start consumer: %w", err)
-	}
-
-	consumer.Msg(msg)
-
 	m.consumers[consumer.Name] = consumer
 
 	return nil

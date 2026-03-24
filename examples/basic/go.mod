@@ -1,6 +1,6 @@
 module github.com/KevenMarioN/hop/examples/basic
 
-go 1.26
+go 1.25.5
 
 replace github.com/KevenMarioN/hop => ../../
 

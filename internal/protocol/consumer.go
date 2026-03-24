@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/rs/zerolog/log"
 )
 
 // Consumer represents a complete consumer configuration including queue, exchange, and handler.
@@ -28,9 +29,9 @@ type Consumer struct {
 	Queue Queue
 	// Exchange configuration (optional). If nil, uses default exchange.
 	Exchange *Exchange
-	msg      <-chan amqp.Delivery
 	Exec     Handler // Public field for handler function (required)
 	channel  *amqp.Channel
+	msg      <-chan amqp.Delivery
 }
 
 // Validate checks if the consumer configuration is valid.
@@ -39,7 +40,7 @@ type Consumer struct {
 // - Handler function is nil
 // - Queue configuration is invalid
 // - Exchange configuration is invalid (if provided)
-func (c Consumer) Validate() error {
+func (c *Consumer) Validate() error {
 	var errs = make([]error, 0)
 
 	if c.Name == "" {
@@ -69,10 +70,6 @@ func (c Consumer) Validate() error {
 	return nil
 }
 
-func (c *Consumer) Msg(msg <-chan amqp.Delivery) {
-	c.msg = msg
-}
-
 func (c *Consumer) Channel(channel *amqp.Channel) {
 	c.channel = channel
 }
@@ -86,7 +83,44 @@ func (c *Consumer) Close() error {
 }
 
 func (c *Consumer) Listen() <-chan amqp.Delivery {
+	// Check if channel is closed or nil
+	if c.msg == nil || isChannelClosed(c.msg) {
+		if c.channel == nil || c.channel.IsClosed() {
+			log.Error().Msg("cannot start consumer: channel is nil or closed")
+			return nil
+		}
+
+		var err error
+		if c.msg, err = c.channel.Consume(
+			c.Queue.Name,
+			c.Name,
+			c.AutoAck,
+			c.Exclusive,
+			c.NoLocal,
+			c.NoWait,
+			c.Headers,
+		); err != nil {
+			log.Error().
+				Err(err).
+				Str("consumer", c.Name).
+				Str("queue", c.Queue.Name).
+				Msg("failed to start consumer")
+
+			return nil
+		}
+	}
+
 	return c.msg
+}
+
+// isChannelClosed checks if a channel is closed without blocking
+func isChannelClosed(ch <-chan amqp.Delivery) bool {
+	select {
+	case _, ok := <-ch:
+		return !ok // closed if ok is false
+	default:
+		return false // channel is open and has no data
+	}
 }
 
 func (c *Consumer) Handler(handler Handler) {
