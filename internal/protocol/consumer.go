@@ -25,6 +25,9 @@ type Consumer struct {
 	NoWait bool
 	// Headers are additional arguments for the consume request.
 	Headers map[string]any
+	// PrefetchCount limits how many unacknowledged messages the server will deliver.
+	// Set to 0 for unlimited (not recommended for high throughput).
+	PrefetchCount int
 	// Queue configuration for the target queue.
 	Queue Queue
 	// Exchange configuration (optional). If nil, uses default exchange.
@@ -75,10 +78,12 @@ func (c *Consumer) Channel(channel *amqp.Channel) {
 }
 
 func (c *Consumer) Close() error {
-	if err := c.channel.Close(); err != nil {
-		return fmt.Errorf("failed close channel to consumer %s", c.Name)
+	if c.channel == nil {
+		return nil
 	}
-
+	if err := c.channel.Close(); err != nil {
+		return fmt.Errorf("failed to close channel for consumer %s: %w", c.Name, err)
+	}
 	return nil
 }
 
@@ -88,6 +93,14 @@ func (c *Consumer) Listen() <-chan amqp.Delivery {
 		if c.channel == nil || c.channel.IsClosed() {
 			log.Error().Msg("cannot start consumer: channel is nil or closed")
 			return nil
+		}
+
+		// Set QoS before consuming if PrefetchCount is defined
+		if c.PrefetchCount > 0 {
+			if err := c.channel.Qos(c.PrefetchCount, 0, false); err != nil {
+				log.Error().Err(err).Msg("failed to set QoS")
+				return nil
+			}
 		}
 
 		var err error
@@ -145,4 +158,46 @@ func (c *Consumer) Execute(ctx context.Context, msg Message) error {
 	// Logging removed for performance; metrics track consumption.
 	// Enable debug logging in zerolog if per-message logging is needed.
 	return c.Exec(ctx, msg)
+}
+
+// Start begins the consumer loop. It listens for messages and processes them.
+// It blocks until the context is cancelled or a fatal error occurs.
+func (c *Consumer) Start(ctx context.Context) error {
+	deliveries := c.Listen()
+	if deliveries == nil {
+		return errors.New("failed to get delivery channel")
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case d, ok := <-deliveries:
+			if !ok {
+				// Channel closed, likely due to connection issue
+				return errors.New("delivery channel closed")
+			}
+
+			msg := Message{Delivery: d}
+
+			// Execute the handler
+			err := c.Execute(ctx, msg)
+
+			// Handle Ack/Nack (if not AutoAck)
+			if !c.AutoAck {
+				if err != nil {
+					// Handler failed: Nack the message
+					// Note: You may want to make requeue configurable
+					if nErr := msg.Failure(false, true); nErr != nil {
+						log.Error().Err(nErr).Msg("failed to Nack message")
+					}
+				} else {
+					// Handler succeeded: Ack the message
+					if aErr := msg.Success(false); aErr != nil {
+						log.Error().Err(aErr).Msg("failed to Ack message")
+					}
+				}
+			}
+		}
+	}
 }
