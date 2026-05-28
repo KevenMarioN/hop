@@ -47,13 +47,15 @@ type Client interface {
 	// This spawns goroutines and returns immediately.
 	StartConsumers(ctx context.Context)
 
+	WaitConsumers()
+
 	// Close terminates the connection immediately without waiting for consumers.
 	// For graceful shutdown, use Shutdown instead.
 	Close() error
 
 	// Shutdown gracefully stops all consumers and closes the connection.
 	// It waits for active message processing to complete.
-	Shutdown(ctx context.Context) error
+	Shutdown() error
 }
 
 // New creates a new Hop client connected to RabbitMQ.

@@ -78,12 +78,14 @@ func (c *Consumer) Channel(channel *amqp.Channel) {
 }
 
 func (c *Consumer) Close() error {
-	if c.channel == nil {
+	if c.channel == nil || c.channel.IsClosed() {
 		return nil
 	}
-	if err := c.channel.Close(); err != nil {
+
+	if err := c.channel.Close(); err != nil && !errors.Is(err, amqp.ErrClosed) {
 		return fmt.Errorf("failed to close channel for consumer %s: %w", c.Name, err)
 	}
+
 	return nil
 }
 
@@ -188,12 +190,12 @@ func (c *Consumer) Start(ctx context.Context) error {
 				if err != nil {
 					// Handler failed: Nack the message
 					// Note: You may want to make requeue configurable
-					if nErr := msg.Failure(false, true); nErr != nil {
+					if nErr := msg.Failure(); nErr != nil {
 						log.Error().Err(nErr).Msg("failed to Nack message")
 					}
 				} else {
 					// Handler succeeded: Ack the message
-					if aErr := msg.Success(false); aErr != nil {
+					if aErr := msg.Success(); aErr != nil {
 						log.Error().Err(aErr).Msg("failed to Ack message")
 					}
 				}

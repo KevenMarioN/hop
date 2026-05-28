@@ -2,7 +2,9 @@ package consumer
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"maps"
 	"sync"
 	"time"
 
@@ -65,23 +67,25 @@ func (m *Manager) Start(ctx context.Context) error {
 	m.mu.RLock()
 
 	consumers := make(map[string]*protocol.Consumer, len(m.consumers))
-	for name, consumer := range m.consumers {
-		consumers[name] = consumer
-	}
+	maps.Copy(consumers, m.consumers)
 
 	m.mu.RUnlock()
 
 	for name, consumer := range consumers {
 		if err := m.recreateConsumer(consumer); err != nil {
+			if errors.Is(err, amqp.ErrClosed) {
+				continue
+			}
+
 			return fmt.Errorf("failed to start consumer %s: %w", name, err)
 		}
 
 		m.startConsumer(ctx, name, consumer)
-	}
 
-	// Update active consumers metric after starting
-	if m.collector != nil {
-		m.collector.Gauge("hop_active_consumers").Set(float64(len(m.consumers)))
+		// Update active consumers metric after starting
+		if m.collector != nil {
+			m.collector.Gauge("hop_active_consumers").Add(1)
+		}
 	}
 
 	return nil
@@ -100,10 +104,12 @@ func (m *Manager) startConsumer(ctx context.Context, name string, consumer *prot
 				if !ok {
 					log.Warn().Msgf("Consumer %s finished", name)
 
-					// Wait for reconnection signal using sync.Cond
-					m.reconnect.L.Lock()
-					m.reconnect.Wait()
-					m.reconnect.L.Unlock()
+					if !m.conn.IsClosed() {
+						// Wait for reconnection signal using sync.Cond
+						m.reconnect.L.Lock()
+						m.reconnect.Wait()
+						m.reconnect.L.Unlock()
+					}
 
 					// Check context again after waiting
 					select {
@@ -113,6 +119,10 @@ func (m *Manager) startConsumer(ctx context.Context, name string, consumer *prot
 					}
 
 					if err := m.recreateConsumer(consumer); err != nil {
+						if errors.Is(err, amqp.ErrClosed) {
+							return nil
+						}
+
 						return fmt.Errorf("failed restarting consumer: %w", err)
 					}
 
@@ -155,6 +165,10 @@ func (m *Manager) startConsumer(ctx context.Context, name string, consumer *prot
 func (m *Manager) recreateConsumer(consumer *protocol.Consumer) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	if m.conn.IsClosed() {
+		return amqp.ErrClosed
+	}
 
 	channel, err := m.conn.Channel()
 	if err != nil {
@@ -258,4 +272,22 @@ func (m *Manager) NotifyReconnected(conn *amqp.Connection) {
 	if m.collector != nil {
 		m.collector.Counter("hop_reconnects_total").Inc()
 	}
+}
+
+func (m *Manager) Stop() error {
+	m.mu.RLock()
+
+	for name, consumer := range m.consumers {
+		if err := consumer.Close(); err != nil {
+			log.Error().Err(err).Msgf("failed to close %s consumer", name)
+		}
+	}
+
+	if m.collector != nil {
+		m.collector.Gauge("hop_active_consumers").Set(float64(0))
+	}
+
+	m.mu.RUnlock()
+
+	return nil
 }

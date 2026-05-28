@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/KevenMarioN/hop"
@@ -12,6 +15,9 @@ import (
 func main() {
 	ctx := context.Background()
 
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
 	clientHop, err := hop.New(ctx, "amqp://admin:admin@localhost:5672/",
 		hop.WithBackoff(2, time.Second*1, time.Minute*1),
 		hop.WithMetrics(hop.NewOpenTelemetryCollector("hop")))
@@ -19,6 +25,15 @@ func main() {
 		log.Error().Err(err).Msg("failed start connection hop")
 		return
 	}
+
+	go func() {
+		sig := <-sigChan
+		log.Info().Msgf("Capture signal: %v. Initiating Shutdown.", sig)
+
+		if err := clientHop.Shutdown(); err != nil {
+			log.Error().Err(err).Msg("failed shutdown")
+		}
+	}()
 
 	if err := clientHop.Consume(hop.Consumer{
 		Name:      "example-hop-dollar",
@@ -86,9 +101,9 @@ func main() {
 	}
 
 	clientHop.StartConsumers(ctx)
+	clientHop.WaitConsumers()
 
-	if err := clientHop.Shutdown(ctx); err != nil {
-		log.Error().Err(err).Msg("main: failed wait hop")
-		return
+	if err := clientHop.Shutdown(); err != nil {
+		log.Error().Err(err).Msg("failed shutdown")
 	}
 }

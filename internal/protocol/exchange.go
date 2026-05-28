@@ -3,6 +3,7 @@ package protocol
 import (
 	"errors"
 	"fmt"
+	"slices"
 )
 
 // Exchange defines the configuration for a RabbitMQ exchange.
@@ -56,16 +57,8 @@ func (e Exchange) Validate() error {
 
 	// Validate exchange kind
 	validKinds := []Kind{Fanout, Topic, Direct, Default}
-	kindValid := false
 
-	for _, validKind := range validKinds {
-		if e.Kind == validKind {
-			kindValid = true
-			break
-		}
-	}
-
-	if !kindValid {
+	if !slices.Contains(validKinds, e.Kind) {
 		errs = append(errs, fmt.Errorf(
 			"invalid exchange kind: %q (valid kinds: fanout, topic, direct, or empty for default)", e.Kind))
 	}

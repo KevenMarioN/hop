@@ -19,6 +19,11 @@ linters:
     - govet # Detects common mistakes not caught by the compiler (e.g., Printf format issues).
     - gocritic # Provides extra checks for non-idiomatic patterns, redundancy, etc.
     - lll # Warns about long lines (customizable max length, default: 120).
+    - govet
+linters-settings:
+  govet:
+    enable:
+      - fieldalignment
 formatters:
   enable:
     - gofmt

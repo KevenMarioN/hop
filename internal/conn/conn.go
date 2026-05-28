@@ -3,6 +3,9 @@ package conn
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/KevenMarioN/hop/internal/consumer"
@@ -20,6 +23,7 @@ type hop struct {
 	backoffConfig  backoffConfig
 	config         amqp.Config
 	collector      metrics.MetricsCollector
+	sigChan        chan os.Signal
 }
 
 // backoffConfig holds exponential backoff parameters for reconnection.
@@ -46,6 +50,10 @@ func Connect(ctx context.Context, url string, opts ...HopOption) (*hop, error) {
 		},
 		collector: metrics.NopCollector,
 	}
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	c.sigChan = sigChan
 
 	for _, opt := range opts {
 		opt(c)
@@ -87,9 +95,18 @@ func (h *hop) monitorConnection(ctx context.Context, url string) {
 		return nil
 	}
 
-	for {
+	var close bool
+	for !close {
 		select {
 		case <-ctx.Done():
+			if err := h.conn.Close(); err != nil {
+				log.Error().Err(err).Msgf("failed to close connection %s", h.connectionName)
+			}
+
+			return
+		case <-h.sigChan:
+			log.Info().Msg("Shutdown gracefully")
+
 			if err := h.conn.Close(); err != nil {
 				log.Error().Err(err).Msgf("failed to close connection %s", h.connectionName)
 			}
@@ -120,10 +137,22 @@ func (c *hop) Consume(args protocol.Consumer) error {
 	return c.consumerMgr.Register(&args)
 }
 
+func (c *hop) Consumers(args []protocol.Consumer) {
+	for k, v := range args {
+		if err := c.consumerMgr.Register(&v); err != nil {
+			log.Error().Err(err).Msgf("failed register consumer %d", k+1)
+		}
+	}
+}
+
 // Close terminates the AMQP connection immediately.
 // It does not wait for consumers to finish processing.
 // Use Shutdown for graceful termination.
 func (c *hop) Close() error {
+	if c.conn.IsClosed() {
+		return nil
+	}
+
 	if err := c.conn.Close(); err != nil {
 		return fmt.Errorf("failed to close connection: %w", err)
 	}
@@ -133,8 +162,8 @@ func (c *hop) Close() error {
 
 // Shutdown gracefully stops all consumers and closes the connection.
 // It waits for active message processing to complete (or context timeout).
-func (c *hop) Shutdown(ctx context.Context) error {
-	if err := c.consumerMgr.Wait(); err != nil {
+func (c *hop) Shutdown() error {
+	if err := c.consumerMgr.Stop(); err != nil {
 		return fmt.Errorf("failed to wait consumer manager: %w", err)
 	}
 
@@ -150,6 +179,12 @@ func (c *hop) Shutdown(ctx context.Context) error {
 func (c *hop) StartConsumers(ctx context.Context) {
 	if err := c.consumerMgr.Start(ctx); err != nil {
 		log.Error().Err(err).Msg("Failed to start consumers")
+	}
+}
+
+func (c *hop) WaitConsumers() {
+	if err := c.consumerMgr.Wait(); err != nil {
+		log.Error().Err(err).Msg("failed in waiting consumers")
 	}
 }
 
